@@ -22,8 +22,8 @@ struct Node{
 struct Token{
     Token(bool o, int v):op(o), value(v){}
     Token():op(false), value(0){}
-    int value;
     bool op;
+    int value;
 };
 
 class TokenStack{
@@ -49,7 +49,7 @@ class SyntaxTree{
         SyntaxTree(std::string e);
         SyntaxTree();
         SyntaxTree(const SyntaxTree&);
-        int evaluate();
+        double evaluate();
         std::string str();
         void setExpr(std::string);
         bool operator==(const SyntaxTree& b){ return expr == b.expr; }
@@ -62,8 +62,8 @@ class SyntaxTree{
         bool isBuilt;
         TokenStack exprstack;
         void build(Node*);
-        int evaluate(Node*);
+        double evaluate(Node*);
         int roll(int, int);
 };
 
-int evaluate(std::string);
+double evaluate(std::string);

@@ -4,8 +4,10 @@
 #include <stdlib.h>
 #include <stdexcept>
 #include <ctype.h>
+#include <iostream>
+#include <cmath>
 
-std::string operators = "dDxX+-*/@()";
+std::string operators = "dDxX+-*/^@()";
 
 //---------------------------------------------[Token]---------------------------------------------
 
@@ -23,8 +25,10 @@ int precedence(Token t){
         case 'd':
         case 'D':
         case '@':
+        case '^':
             return 2;
     }
+    throw std::runtime_error("An unknown error occured.");
 }
 
 //-------------------------------------------[TokenStack]-------------------------------------------
@@ -87,12 +91,22 @@ Token TokenStack::pop(){
 
 //------------------------------------------[Tokenization]------------------------------------------
 
+std::string remove_spaces(std::string in){
+    std::string out;
+    for(char c : in){
+        if(!isspace(static_cast<unsigned char>(c))){
+            out += c;
+        }
+    }
+    return out;
+}
 
 std::vector<Token> tokenize(std::string s){
+    s = remove_spaces(s);
     auto first = std::begin(s);
     auto last = std::begin(s);
     std::vector<Token> out;
-    enum tokentype{ token_null, token_op, token_num} prevToken;
+    enum tokentype{token_null, token_op, token_num} prevToken;
     prevToken = token_null;
     while(first != std::end(s)){
         if(isdigit(*first)){
@@ -105,6 +119,7 @@ std::vector<Token> tokenize(std::string s){
             first = last;
             prevToken = token_num;
         }
+        
         //Handle the case of negative numbers. A '-' char indicates a
         //negative number if it comes at the beginning of the string,
         //or if it follows a previous operator.
@@ -117,8 +132,12 @@ std::vector<Token> tokenize(std::string s){
             first = last;
             prevToken = token_num;
         }
-
+        
         if(is_in_list(*first, operators)){
+            //Handle implicit lval argument of 1 on dice rolls when not explicitly stated
+            if(*first == 'd' && prevToken != token_num){
+                out.push_back(Token(false, 1));
+            }    
             out.push_back(Token(true, *first));
             first++;
             last = first;
@@ -133,7 +152,7 @@ TokenStack infix_to_postfix(std::vector<Token> list){
     TokenStack postfix;
     TokenStack opstack;
     try{
-        int i = 0;
+        size_t i = 0;
         while(i < list.size()){
             Token t = list[i];
             //Case 1: Push operands as they arrive. This is the only case
@@ -151,10 +170,16 @@ TokenStack infix_to_postfix(std::vector<Token> list){
             //Case 3: If the incoming symbol is a right parenthesis, pop the
             //stack and print the operators until you see a left parenthesis.
             else if (t.value == ')'){
-                while(opstack.peek().value != '(' && opstack.size() > 0){
-                    postfix.push(opstack.pop());
+                //If there is a left parenthesis on the stack, the two will annihilate.
+                if(opstack.peek().value == '('){
+                    opstack.pop();
                 }
-                opstack.pop();//discard parentheses
+                else{
+                    while(opstack.peek().value != '(' && opstack.size() > 0){
+                        postfix.push(opstack.pop());
+                    }
+                    opstack.pop();//discard parentheses
+                }
                 i++;
             }
             //Case 4: If the stack is empty or contains a left parenthesis on
@@ -303,11 +328,11 @@ int SyntaxTree::roll(int numdice, int numsides){
     return total;
 }
 
-int SyntaxTree::evaluate(){
+double SyntaxTree::evaluate(){
     return evaluate(root);
 }
 
-int SyntaxTree::evaluate(Node* n){
+double SyntaxTree::evaluate(Node* n){
     if(n->left == nullptr && n->right == nullptr){
         //an operand will have two null children
         if(!n->op){
@@ -319,40 +344,51 @@ int SyntaxTree::evaluate(Node* n){
     }
     
     char c = n->value;
-    int lval, rval;
+    double lval, rval;
 
-    if(c == 'd' && n->left == nullptr){
-        lval = 1; //this way, users dont have to specify rolling "1d6", instead they can just roll "d6"
-    }
-    else{
-        lval = evaluate(n->left);
-    }
-    
+    lval = evaluate(n->left);
     rval = evaluate(n->right);
     
+    double result;
     switch (c){
         case 'd':
-            return roll(lval, rval);
+            result = roll(lval, rval);
+            break;
         case '+':
-            return lval + rval;
+            result = lval + rval;
+            break;
         case '-':
-            return lval - rval;
+            result = lval - rval;
+            break;
         case 'x':
         case '*':
-            return lval * rval;
+            result = lval * rval;
+            break;
         case '/':
-            return lval / rval;
+            result = lval / rval;
+            break;
         case '@':
-            return lval - rval;
+            result = lval - rval;
+            break;
+        case '^':
+            result = pow(lval, rval);
+            break;            
     }
+    return result;
 }
 
 std::string SyntaxTree::str(){
     return expr;
 }
 
-int evaluate(std::string expr){
+double evaluate(std::string expr){
     SyntaxTree s(expr);
-    return s.evaluate();
+    double result;
+    try{
+        result = s.evaluate();
+    }
+    catch(std::runtime_error& e){
+        throw e;
+    }
+    return result;
 }
-

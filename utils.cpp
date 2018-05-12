@@ -1,7 +1,7 @@
 #include "utils.hpp"
 
 void tolower(std::string& s){
-    for(int i = 0; i < s.length(); i++){
+    for(size_t i = 0; i < s.length(); i++){
         if(s[i] >= 'A' && s[i] <= 'Z'){
            s[i] = s[i] - 'A' + 'a';
         }
@@ -9,7 +9,7 @@ void tolower(std::string& s){
 }
 
 void toupper(std::string& s){
-    for(int i = 0; i < s.length(); i++){
+    for(size_t i = 0; i < s.length(); i++){
         if(s[i] >= 'a' && s[i] <= 'z'){
            s[i] = s[i] - 'a' + 'A';
         }
@@ -17,7 +17,7 @@ void toupper(std::string& s){
 }
 
 int max_length_in_list(std::vector<std::string>& l){
-    int out = 0;
+    size_t out = 0;
     for(std::string elem : l){
         if(elem.length() > out){ out = elem.length(); }
     }
