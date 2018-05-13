@@ -12,18 +12,21 @@ struct ParseException : public std::exception {
 
 //---------------------------------[Class and Struct declarations]----------------------------------
 
+//Nodes and tokens may be different types of elements: numbers, operators, or functions.
+enum element {num_t, op_t, func_t};
+
 struct Node{
-    bool op;
-    int value = 0;
+    enum element type;
+    std::string value = "";
     Node* left = nullptr;
     Node* right = nullptr;
 };
 
 struct Token{
-    Token(bool o, int v):op(o), value(v){}
-    Token():op(false), value(0){}
-    bool op;
-    int value;
+    Token(enum element t, std::string v):type(t), value(v){}
+    Token():type(num_t), value(""){}
+    enum element type;
+    std::string value;
 };
 
 class TokenStack{
@@ -52,6 +55,7 @@ class SyntaxTree{
         double evaluate();
         std::string str();
         void setExpr(std::string);
+        bool validate(Node*);
         bool operator==(const SyntaxTree& b){ return expr == b.expr; }
         bool operator!=(const SyntaxTree& b){ return expr != b.expr; }
         SyntaxTree& operator=(const SyntaxTree&);
@@ -60,6 +64,7 @@ class SyntaxTree{
         Node* root;
         std::string expr;
         bool isBuilt;
+        bool valid;
         TokenStack exprstack;
         void build(Node*);
         double evaluate(Node*);

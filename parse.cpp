@@ -12,7 +12,7 @@ std::string operators = "dDxX+-*/^@()";
 //---------------------------------------------[Token]---------------------------------------------
 
 int precedence(Token t){
-    char c = t.value;
+    char c = t.value[0];
     switch(c){
         case '+':
         case '-':
@@ -45,7 +45,7 @@ TokenStack::TokenStack(const TokenStack& other){
 }
 
 TokenStack& TokenStack::operator=(const TokenStack& other){
-    if(data){ delete data; }
+    if(data){ delete[] data; }
     numTokens = other.numTokens;
     top = other.top;
     data = new Token[1024];
@@ -109,13 +109,14 @@ std::vector<Token> tokenize(std::string s){
     enum tokentype{token_null, token_op, token_num} prevToken;
     prevToken = token_null;
     while(first != std::end(s)){
-        if(isdigit(*first)){
+        //Numbers
+        if(isdigit(*first) || *first == '.'){
             last = first;
             do{
                 last++;
-            } while(last != std::end(s) && isdigit(*last));
+            } while(last != std::end(s) && (isdigit(*last) || *last == '.'));
 
-            out.push_back(Token(false, std::stoi(std::string(first, last))));
+            out.push_back(Token(num_t, std::string(first, last)));
             first = last;
             prevToken = token_num;
         }
@@ -127,8 +128,8 @@ std::vector<Token> tokenize(std::string s){
             first = last;
             do{
                 last++;
-            } while(last != std::end(s) && isdigit(*last));
-            out.push_back(Token(false, std::stoi(std::string(first, last))));
+            } while(last != std::end(s) && (isdigit(*last) || *last == '.'));
+            out.push_back(Token(num_t, std::string(first, last)));
             first = last;
             prevToken = token_num;
         }
@@ -136,9 +137,9 @@ std::vector<Token> tokenize(std::string s){
         if(is_in_list(*first, operators)){
             //Handle implicit lval argument of 1 on dice rolls when not explicitly stated
             if(*first == 'd' && prevToken != token_num){
-                out.push_back(Token(false, 1));
+                out.push_back(Token(num_t, "1"));
             }    
-            out.push_back(Token(true, *first));
+            out.push_back(Token(op_t, std::string(first, first+1)));
             first++;
             last = first;
             prevToken = token_op;
@@ -155,36 +156,36 @@ TokenStack infix_to_postfix(std::vector<Token> list){
         size_t i = 0;
         while(i < list.size()){
             Token t = list[i];
-            //Case 1: Push operands as they arrive. This is the only case
+            //Case 1: Push operands (numbers) as they arrive. This is the only case
             //involving operands.
-            if(!t.op){
+            if(t.type == num_t){
                 postfix.push(t);
                 i++;
             }
             //Case 2: If the incoming symbol is a left parenthesis, push it on
             //the stack.
-            else if (t.value == '('){
+            else if (t.value == "("){
                 opstack.push(t);
                 i++;
             }
-            //Case 3: If the incoming symbol is a right parenthesis, pop the
-            //stack and print the operators until you see a left parenthesis.
-            else if (t.value == ')'){
+            //Case 3: If the incoming symbol is a right parenthesis, pop the operator
+            //stack and push the operators onto the output until you see a left parenthesis.
+            else if (t.value == ")"){
                 //If there is a left parenthesis on the stack, the two will annihilate.
-                if(opstack.peek().value == '('){
+                if(opstack.peek().value == "("){
                     opstack.pop();
                 }
                 else{
-                    while(opstack.peek().value != '(' && opstack.size() > 0){
+                    while(opstack.peek().value != "(" && opstack.size() > 0){
                         postfix.push(opstack.pop());
                     }
                     opstack.pop();//discard parentheses
                 }
                 i++;
             }
-            //Case 4: If the stack is empty or contains a left parenthesis on
-            //top, push the incoming operator onto the stack.
-            else if (opstack.is_empty() || opstack.peek().value == '('){
+            //Case 4: If the operator stack is empty or contains a left parenthesis on
+            //top, push the incoming operator onto the operator stack.
+            else if (opstack.is_empty() || opstack.peek().value == "("){
                 opstack.push(t);
                 i++;
             }
@@ -216,7 +217,7 @@ TokenStack infix_to_postfix(std::vector<Token> list){
         while(opstack.not_empty()){
             postfix.push(opstack.pop());
             Token temp = postfix.peek();
-            if(temp.op && (temp.value == '(' || temp.value == ')')){
+            if((temp.type == op_t) && (temp.value == "(" || temp.value == ")")){
                 throw std::runtime_error("Mismatched Parentheses");
             }
         }
@@ -242,7 +243,7 @@ void freeTree(Node* n){
 Node* copyTree(Node* n){
     if(n == nullptr) return nullptr;
     Node* clone = new Node;
-    clone->op = n->op;
+    clone->type = n->type;
     clone->value = n->value;
     clone->left = copyTree(n->left);
     clone->right = copyTree(n->right);
@@ -262,6 +263,10 @@ SyntaxTree::SyntaxTree(std::string e):expr(e){
     }
     build(root);
     isBuilt = true;
+    valid = validate(root);
+    if(!valid){
+        throw std::runtime_error("Malformed syntax.");
+    }
 }
 
 SyntaxTree::SyntaxTree(){
@@ -301,14 +306,18 @@ void SyntaxTree::setExpr(std::string e){
     }
     build(root);
     isBuilt = true;
+    valid = validate(root);
+    if(!valid){
+        throw std::runtime_error("Malformed syntax.");
+    }
 }
 
 void SyntaxTree::build(Node* n){
     if(exprstack.size() == 0) return;
     Token t = exprstack.pop();
-    n->op = t.op;
+    n->type = t.type;
     n->value = t.value;
-    if(n->op){
+    if(n->type == op_t){
         n->right = new Node;
         build(n->right);
         if(exprstack.size() == 0) return;
@@ -333,17 +342,8 @@ double SyntaxTree::evaluate(){
 }
 
 double SyntaxTree::evaluate(Node* n){
-    if(n->left == nullptr && n->right == nullptr){
-        //an operand will have two null children
-        if(!n->op){
-            return n->value;
-        }
-        else{
-            throw std::runtime_error("Invalid Expression. Please try again.");
-        }
-    }
-    
-    char c = n->value;
+    if(n->type == num_t) return std::stod(n->value);
+    char c = n->value[0];
     double lval, rval;
 
     lval = evaluate(n->left);
@@ -377,14 +377,39 @@ double SyntaxTree::evaluate(Node* n){
     return result;
 }
 
+bool SyntaxTree::validate(Node* n){
+   if(n == nullptr) return true;
+   //If the current node is an operator and either child is null,
+   //that means the tree is invalid.
+   if(n->type == op_t){
+       if(n->left == nullptr || n->right == nullptr){
+           return false;
+       }
+   }
+
+   //If the current node is a number, and either child is not null,
+   //then the tree is invalid.
+   if(n->type == num_t){
+       if(!(n->left == nullptr || n->right == nullptr)){
+           return false;
+       }
+   }
+
+   bool l = validate(n->left);
+   bool r = validate(n->right);
+
+   return l && r;
+}
+
+
 std::string SyntaxTree::str(){
     return expr;
 }
 
 double evaluate(std::string expr){
-    SyntaxTree s(expr);
     double result;
     try{
+        SyntaxTree s(expr);
         result = s.evaluate();
     }
     catch(std::runtime_error& e){
