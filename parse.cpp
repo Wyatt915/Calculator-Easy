@@ -45,7 +45,7 @@ TokenStack::TokenStack(const TokenStack& other){
 }
 
 TokenStack& TokenStack::operator=(const TokenStack& other){
-    if(data){ delete[] data; }
+    delete[] data; //This is guaranteed to be allocated beforehand.
     numTokens = other.numTokens;
     top = other.top;
     data = new Token[1024];
@@ -91,18 +91,7 @@ Token TokenStack::pop(){
 
 //------------------------------------------[Tokenization]------------------------------------------
 
-std::string remove_spaces(std::string in){
-    std::string out;
-    for(char c : in){
-        if(!isspace(static_cast<unsigned char>(c))){
-            out += c;
-        }
-    }
-    return out;
-}
-
 std::vector<Token> tokenize(std::string s){
-    s = remove_spaces(s);
     auto first = std::begin(s);
     auto last = std::begin(s);
     std::vector<Token> out;
@@ -124,7 +113,7 @@ std::vector<Token> tokenize(std::string s){
         //Handle the case of negative numbers. A '-' char indicates a
         //negative number if it comes at the beginning of the string,
         //or if it follows a previous operator.
-        if(*first == '-' && prevToken != token_num){
+        else if(*first == '-' && prevToken != token_num){
             first = last;
             do{
                 last++;
@@ -134,7 +123,7 @@ std::vector<Token> tokenize(std::string s){
             prevToken = token_num;
         }
         
-        if(is_in_list(*first, operators)){
+        else if(is_in_list(*first, operators)){
             //Handle implicit lval argument of 1 on dice rolls when not explicitly stated
             if(*first == 'd' && prevToken != token_num){
                 out.push_back(Token(num_t, "1"));
@@ -144,6 +133,8 @@ std::vector<Token> tokenize(std::string s){
             last = first;
             prevToken = token_op;
         }
+
+        else{ first++; }
     }
     return out;
 }
