@@ -8,6 +8,8 @@
 #include <cmath>
 
 std::string operators = "dDxX+-*/^@()";
+std::vector<std::string> functions = {"sin", "cos", "tan", "log", "sqrt"};
+std::vector<std::string> constants = {"e", "pi", "phi"};
 
 //---------------------------------------------[Token]---------------------------------------------
 
@@ -95,8 +97,8 @@ std::vector<Token> tokenize(std::string s){
     auto first = std::begin(s);
     auto last = std::begin(s);
     std::vector<Token> out;
-    enum tokentype{token_null, token_op, token_num} prevToken;
-    prevToken = token_null;
+    enum element prevToken;
+    prevToken = null_t;
     while(first != std::end(s)){
         //Numbers
         if(isdigit(*first) || *first == '.'){
@@ -107,31 +109,36 @@ std::vector<Token> tokenize(std::string s){
 
             out.push_back(Token(num_t, std::string(first, last)));
             first = last;
-            prevToken = token_num;
+            prevToken = num_t;
         }
-        
+
         //Handle the case of negative numbers. A '-' char indicates a
         //negative number if it comes at the beginning of the string,
         //or if it follows a previous operator.
-        else if(*first == '-' && prevToken != token_num){
+        else if(*first == '-' && prevToken != num_t){
             first = last;
             do{
                 last++;
             } while(last != std::end(s) && (isdigit(*last) || *last == '.'));
             out.push_back(Token(num_t, std::string(first, last)));
             first = last;
-            prevToken = token_num;
+            prevToken = num_t;
         }
         
         else if(is_in_list(*first, operators)){
             //Handle implicit lval argument of 1 on dice rolls when not explicitly stated
-            if(*first == 'd' && prevToken != token_num){
+            if(*first == 'd' && prevToken != num_t){
                 out.push_back(Token(num_t, "1"));
             }    
+            //Handle implicit multiplication of parentheticals
+            if(*first == '(' && prevToken != null_t && (out.back().value == ")" || prevToken == num_t)){
+                out.push_back(Token(op_t, "*"));
+                prevToken = op_t;
+            }
             out.push_back(Token(op_t, std::string(first, first+1)));
             first++;
             last = first;
-            prevToken = token_op;
+            prevToken = op_t;
         }
 
         else{ first++; }
@@ -251,6 +258,9 @@ SyntaxTree::SyntaxTree(std::string e):expr(e){
     }
     catch(std::runtime_error& p){
         throw p;
+    }
+    catch(...){
+        throw std::runtime_error("An Error occurred converting to postfix.");
     }
     build(root);
     isBuilt = true;
