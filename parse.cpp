@@ -30,7 +30,8 @@ int precedence(Token t){
         case '^':
             return 2;
     }
-    throw std::runtime_error("An unknown error occured.");
+    std::string err = "An unknown error occured. [";
+    throw std::runtime_error(err + c + "]");
 }
 
 //-------------------------------------------[TokenStack]-------------------------------------------
@@ -112,10 +113,34 @@ std::vector<Token> tokenize(std::string s){
             prevToken = num_t;
         }
 
+        //functions and constants start with a letter and may contain letters
+        //and numbers.
+        if(isalpha(*first)){
+            last = first;
+            do{
+                last++;
+            }while(last != std::end(s) && isalpha(*last));
+            std::string temp(first, last);
+            first = last;
+            if(is_in_list(temp, constants)){
+                if(temp == "e"){
+                    out.push_back(Token(num_t, "2.718281828"));
+                }
+                else if(temp == "pi"){
+                    out.push_back(Token(num_t, "3.141592653"));
+                }
+                else if(temp == "phi"){
+                    out.push_back(Token(num_t, "1.618"));
+                }
+            }
+            else{
+                throw std::runtime_error("Unknown symbol");
+            }
+        }
         //Handle the case of negative numbers. A '-' char indicates a
         //negative number if it comes at the beginning of the string,
         //or if it follows a previous operator.
-        else if(*first == '-' && prevToken != num_t){
+        else if(*first == '-' && prevToken != num_t && out.back().value != ")"){
             first = last;
             do{
                 last++;

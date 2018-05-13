@@ -13,7 +13,7 @@ struct ParseException : public std::exception {
 //---------------------------------[Class and Struct declarations]----------------------------------
 
 //Nodes and tokens may be different types of elements: numbers, operators, or functions.
-enum element {null_t, num_t, op_t, func_t};
+enum element {null_t, num_t, op_t, func_t, paren_t};
 
 struct Node{
     enum element type;
