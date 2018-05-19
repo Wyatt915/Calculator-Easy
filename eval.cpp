@@ -1,5 +1,5 @@
 #include "eval.hpp"
-#include "functor.hpp"
+#include "func.hpp"
 #include "parse.hpp"
 #include "utils.hpp"
 
@@ -39,7 +39,6 @@ class SyntaxTree{
         TokenStack exprstack;
         void build(Node*);
         double evaluate(Node*);
-        int roll(int, int);
 };
 
 //------------------------------------[Operators and Functions]-------------------------------------
@@ -50,11 +49,13 @@ static std::map<std::string, std::string> constants = {
     { "e",   "2.71828182845904523536" }
 };
 
-static std::map<std::string, ce_func*> ops = {
-    { "+", new add_f() },
-    { "-", new sub_f() },
-    { "*", new mul_f() },
-    { "/", new div_f() }
+static std::map<std::string, std::function<double(std::vector<double>)> > ops = {
+    { "+", add_f },
+    { "-", sub_f },
+    { "*", mul_f },
+    { "/", div_f },
+    { "^", pow_f },
+    { "d", rol_f }
 };
 
 //----------------------------------------[Tree operations]----------------------------------------
@@ -158,14 +159,6 @@ void SyntaxTree::build(Node* n){
     }
 }
 
-int SyntaxTree::roll(int numdice, int numsides){
-    int total = 0;
-    for(int i = 0; i < numdice; i++){
-        total += rand() % numsides + 1;
-    }
-    return total;
-}
-
 double SyntaxTree::evaluate(){
     return evaluate(root);
 }
@@ -180,7 +173,7 @@ double SyntaxTree::evaluate(Node* n){
     args.push_back(lval);
     args.push_back(rval);
 
-    return (*ops[n->value])(args);
+    return ops[n->value](args);
 }
 
 bool SyntaxTree::validate(Node* n){

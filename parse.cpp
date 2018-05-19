@@ -31,7 +31,7 @@ int precedence(Token t){
         case '^':
             return 2;
     }
-    std::string err = "An unknown error occured. [";
+    std::string err = "An error occured finding precedence. [";
     throw std::runtime_error(err + c + "]");
 }
 
@@ -101,7 +101,7 @@ std::vector<Token> tokenize(std::string s){
     std::vector<Token> out;
     std::string prevTokenType;
     prevTokenType = NULL_T;
-    while(first != std::end(s)){
+    while(first != std::end(s) || *first != '\0'){
         //Numbers
         if(isdigit(*first) || *first == '.'){
             last = first;
@@ -116,7 +116,7 @@ std::vector<Token> tokenize(std::string s){
 
         //functions and constants start with a letter and may contain letters
         //and numbers.
-        if(isalpha(*first)){
+        else if(isalpha(*first)){
             last = first;
             do{
                 last++;
@@ -167,7 +167,7 @@ std::vector<Token> tokenize(std::string s){
             prevTokenType = OP_T;
         }
 
-        else{ first++; }
+        else{ throw std::runtime_error("Unknown symbol."); }
     }
     return out;
 }

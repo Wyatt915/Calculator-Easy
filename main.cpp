@@ -40,7 +40,7 @@ int main(int argc, char** argv){
         std::cout << evaluate(s) << '\n';
     }
     catch(std::runtime_error& e){
-        std::cerr << "Runtime Error: " << e.what() << std::endl;
+        std::cerr << e.what() << std::endl;
         return 1;
     }
     catch(...){
