@@ -1,5 +1,4 @@
 #pragma once
-#include "utils.hpp"
 #include <string>
 #include <vector>
 
@@ -12,9 +11,9 @@ struct ParseException : public std::exception {
 //---------------------------------[Class and Struct declarations]----------------------------------
 
 struct Token{
-    Token(enum element t, std::string v):type(t), value(v){}
-    Token():type(num_t), value(""){}
-    enum element type;
+    Token(std::string t, std::string v):type(t), value(v){}
+    Token():type("null"), value(""){}
+    std::string type;
     std::string value;
 };
 

@@ -1,4 +1,5 @@
 #include "eval.hpp"
+#include "functor.hpp"
 #include "parse.hpp"
 #include "utils.hpp"
 
@@ -6,13 +7,12 @@
 #include <functional>
 #include <iostream>
 #include <map>
-//#include <pair>
 #include <stdexcept>
 #include <string>
 #include <vector>
 
 struct Node{
-    enum element type;
+    std::string type;
     std::string value = "";
     Node* left = nullptr;
     Node* right = nullptr;
@@ -42,12 +42,20 @@ class SyntaxTree{
         int roll(int, int);
 };
 
-//Operators and Functions
+//------------------------------------[Operators and Functions]-------------------------------------
 
-std::map<std::string, std::string> constants;
-constants.insert(std::make_pair("phi", "1.61803398874989484820"));
-constants.insert(std::make_pair("pi",  "3.14159265358979323846"));
-constants.insert(std::make_pair("e",   "2.71828182845904523536"));
+static std::map<std::string, std::string> constants = {
+    { "phi", "1.61803398874989484820" },
+    { "pi",  "3.14159265358979323846" },
+    { "e",   "2.71828182845904523536" }
+};
+
+static std::map<std::string, ce_func*> ops = {
+    { "+", new add_f() },
+    { "-", new sub_f() },
+    { "*", new mul_f() },
+    { "/", new div_f() }
+};
 
 //----------------------------------------[Tree operations]----------------------------------------
 
@@ -138,7 +146,7 @@ void SyntaxTree::build(Node* n){
     Token t = exprstack.pop();
     n->type = t.type;
     n->value = t.value;
-    if(n->type == op_t){
+    if(n->type == "operator"){
         n->right = new Node;
         build(n->right);
         if(exprstack.size() == 0) return;
@@ -163,46 +171,23 @@ double SyntaxTree::evaluate(){
 }
 
 double SyntaxTree::evaluate(Node* n){
-    if(n->type == num_t) return std::stod(n->value);
-    char c = n->value[0];
+    if(n->type == "number") return std::stod(n->value);
     double lval, rval;
 
     lval = evaluate(n->left);
     rval = evaluate(n->right);
-    
-    double result;
-    switch (c){
-        case 'd':
-            result = roll(lval, rval);
-            break;
-        case '+':
-            result = lval + rval;
-            break;
-        case '-':
-            result = lval - rval;
-            break;
-        case 'x':
-        case '*':
-            result = lval * rval;
-            break;
-        case '/':
-            result = lval / rval;
-            break;
-        case '@':
-            result = lval - rval;
-            break;
-        case '^':
-            result = pow(lval, rval);
-            break;            
-    }
-    return result;
+    std::vector<double> args;
+    args.push_back(lval);
+    args.push_back(rval);
+
+    return (*ops[n->value])(args);
 }
 
 bool SyntaxTree::validate(Node* n){
    if(n == nullptr) return true;
    //If the current node is an operator and either child is null,
    //that means the tree is invalid.
-   if(n->type == op_t){
+   if(n->type == "operator"){
        if(n->left == nullptr || n->right == nullptr){
            return false;
        }
@@ -210,7 +195,7 @@ bool SyntaxTree::validate(Node* n){
 
    //If the current node is a number, and either child is not null,
    //then the tree is invalid.
-   if(n->type == num_t){
+   if(n->type == "number"){
        if(!(n->left == nullptr || n->right == nullptr)){
            return false;
        }

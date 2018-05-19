@@ -3,7 +3,7 @@ CXX=g++
 CXXFLAGS=-c -g -std=c++14 -Wall
 LNFLAGS=
 
-EXEC = ec
+EXEC = ce
 SOURCES = $(wildcard *.cpp)
 OBJECTS = $(SOURCES:.cpp=.o)
 

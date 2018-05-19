@@ -7,8 +7,7 @@
 #include <map>
 #include <stdexcept>
 #include <stdlib.h>
-
-std::string operators = "dDxX+-*/^@()";
+std::vector<std::string> operators = {"d", "D", "x", "X", "+", "-", "*", "/", "^", "@", "(", ")"};
 std::vector<std::string> functions = {"sin", "cos", "tan", "log", "sqrt"};
 std::vector<std::string> constants = {"e", "pi", "phi"};
 
@@ -100,8 +99,8 @@ std::vector<Token> tokenize(std::string s){
     auto first = std::begin(s);
     auto last = std::begin(s);
     std::vector<Token> out;
-    enum element prevToken;
-    prevToken = null_t;
+    std::string prevTokenType;
+    prevTokenType = NULL_T;
     while(first != std::end(s)){
         //Numbers
         if(isdigit(*first) || *first == '.'){
@@ -110,9 +109,9 @@ std::vector<Token> tokenize(std::string s){
                 last++;
             } while(last != std::end(s) && (isdigit(*last) || *last == '.'));
 
-            out.push_back(Token(num_t, std::string(first, last)));
+            out.push_back(Token(NUMBER_T, std::string(first, last)));
             first = last;
-            prevToken = num_t;
+            prevTokenType = NUMBER_T;
         }
 
         //functions and constants start with a letter and may contain letters
@@ -126,46 +125,46 @@ std::vector<Token> tokenize(std::string s){
             first = last;
             if(is_in_list(temp, constants)){
                 if(temp == "e"){
-                    out.push_back(Token(num_t, "2.718281828"));
+                    out.push_back(Token(NUMBER_T, "2.718281828"));
                 }
                 else if(temp == "pi"){
-                    out.push_back(Token(num_t, "3.141592653"));
+                    out.push_back(Token(NUMBER_T, "3.141592653"));
                 }
                 else if(temp == "phi"){
-                    out.push_back(Token(num_t, "1.618"));
+                    out.push_back(Token(NUMBER_T, "1.618"));
                 }
             }
             else{
-                throw std::runtime_error("Unknown symbol");
+                throw std::runtime_error(std::string("Unknown symbol: ") + temp);
             }
         }
         //Handle the case of negative numbers. A '-' char indicates a
         //negative number if it comes at the beginning of the string,
         //or if it follows a previous operator.
-        else if(*first == '-' && prevToken != num_t && out.back().value != ")"){
+        else if(*first == '-' && prevTokenType != NUMBER_T && out.back().value != ")"){
             first = last;
             do{
                 last++;
             } while(last != std::end(s) && (isdigit(*last) || *last == '.'));
-            out.push_back(Token(num_t, std::string(first, last)));
+            out.push_back(Token(NUMBER_T, std::string(first, last)));
             first = last;
-            prevToken = num_t;
+            prevTokenType = NUMBER_T;
         }
         
-        else if(is_in_list(*first, operators)){
+        else if(is_in_list(std::string(first, first+1), operators)){
             //Handle implicit lval argument of 1 on dice rolls when not explicitly stated
-            if(*first == 'd' && prevToken != num_t){
-                out.push_back(Token(num_t, "1"));
+            if(*first == 'd' && prevTokenType != NUMBER_T){
+                out.push_back(Token(NUMBER_T, "1"));
             }    
             //Handle implicit multiplication of parentheticals
-            if(*first == '(' && prevToken != null_t && (out.back().value == ")" || prevToken == num_t)){
-                out.push_back(Token(op_t, "*"));
-                prevToken = op_t;
+            if(*first == '(' && prevTokenType != NULL_T && (out.back().value == ")" || prevTokenType == NUMBER_T)){
+                out.push_back(Token(OP_T, "*"));
+                prevTokenType = OP_T;
             }
-            out.push_back(Token(op_t, std::string(first, first+1)));
+            out.push_back(Token(OP_T, std::string(first, first+1)));
             first++;
             last = first;
-            prevToken = op_t;
+            prevTokenType = OP_T;
         }
 
         else{ first++; }
@@ -183,7 +182,7 @@ TokenStack infix_to_postfix(std::vector<Token> list){
             Token t = list[i];
             //Case 1: Push operands (numbers) as they arrive. This is the only case
             //involving operands.
-            if(t.type == num_t){
+            if(t.type == NUMBER_T){
                 postfix.push(t);
                 i++;
             }
@@ -242,7 +241,7 @@ TokenStack infix_to_postfix(std::vector<Token> list){
         while(opstack.not_empty()){
             postfix.push(opstack.pop());
             Token temp = postfix.peek();
-            if((temp.type == op_t) && (temp.value == "(" || temp.value == ")")){
+            if((temp.type == OP_T) && (temp.value == "(" || temp.value == ")")){
                 throw std::runtime_error("Mismatched Parentheses");
             }
         }
