@@ -28,12 +28,12 @@ class TokenStack{
         void push(Token);
         Token pop();
         Token peek();
-        int size();
+        size_t size();
         bool is_empty();
         bool not_empty();
     private:
         Token* data;
-        int numTokens;
+        size_t numTokens;
         int top;
 };
 

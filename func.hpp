@@ -36,39 +36,3 @@ double rol_f(double lval, double rval){
     return out;
 }
 
-//double sin_f(double lval, double rval){
-//    if(args.size() != 1){ throw std::runtime_error("Function requires 1 argument"); }
-//
-//}
-//double cos_f(double lval, double rval){
-//    if(args.size() != 1){ throw std::runtime_error("Function requires 1 argument"); }
-//
-//}
-//double tan_f(double lval, double rval){
-//    if(args.size() != 1){ throw std::runtime_error("Function requires 1 argument"); }
-//
-//}
-//double csc_f(double lval, double rval){
-//    if(args.size() != 1){ throw std::runtime_error("Function requires 1 argument"); }
-//
-//}
-//double sec_f(double lval, double rval){
-//    if(args.size() != 1){ throw std::runtime_error("Function requires 1 argument"); }
-//
-//}
-//double cot_f(double lval, double rval){
-//    if(args.size() != 1){ throw std::runtime_error("Function requires 1 argument"); }
-//
-//}
-//double exp_f(double lval, double rval){
-//    if(args.size() != 1){ throw std::runtime_error("Function requires 1 argument"); }
-//
-//}
-//double log_f(double lval, double rval){
-//    if(args.size() != 1){ throw std::runtime_error("Function requires 1 argument"); }
-//
-//}
-//double srt_f(double lval, double rval){
-//    if(args.size() != 1){ throw std::runtime_error("Function requires 1 argument"); }
-//
-//}
