@@ -37,6 +37,7 @@ int main(int argc, char** argv){
     }
 
     try{
+        //evaluate(s);
         std::cout << evaluate(s) << '\n';
     }
     catch(std::runtime_error& e){

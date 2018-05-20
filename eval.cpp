@@ -3,6 +3,7 @@
 #include "parse.hpp"
 #include "utils.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <functional>
 #include <iostream>
@@ -10,12 +11,17 @@
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include <iomanip>
+
+#define LFT 0
+#define RGT 1
 
 struct Node{
     std::string type;
     std::string value = "";
     Node* left = nullptr;
     Node* right = nullptr;
+    size_t numchildren = 0;
 };
 
 class SyntaxTree{
@@ -43,13 +49,8 @@ class SyntaxTree{
 
 //------------------------------------[Operators and Functions]-------------------------------------
 
-static std::map<std::string, std::string> constants = {
-    { "phi", "1.61803398874989484820" },
-    { "pi",  "3.14159265358979323846" },
-    { "e",   "2.71828182845904523536" }
-};
 
-static std::map<std::string, std::function<double(std::vector<double>)> > ops = {
+static std::map<std::string, std::function<double(double, double)> > ops = {
     { "+", add_f },
     { "-", sub_f },
     { "*", mul_f },
@@ -58,12 +59,16 @@ static std::map<std::string, std::function<double(std::vector<double>)> > ops = 
     { "d", rol_f }
 };
 
+static std::map<std::string, std::function<double(double)> > funcs = {
+    { "sin", sin }
+};
+
 //----------------------------------------[Tree operations]----------------------------------------
 
 void freeTree(Node* n){
     if(n == nullptr) return;
-    freeTree(n->left);
     freeTree(n->right);
+    freeTree(n->left);
     delete n;
 }
 
@@ -72,9 +77,30 @@ Node* copyTree(Node* n){
     Node* clone = new Node;
     clone->type = n->type;
     clone->value = n->value;
-    clone->left = copyTree(n->left);
     clone->right = copyTree(n->right);
+    clone->left = copyTree(n->left);
     return clone;
+}
+
+//--------------------------------------[Pretty print a tree]---------------------------------------
+//Using graphviz dot program
+void prettyprint(Node* p)
+{
+    if(!p) return;
+    if(p->left){
+        std::cout << "\t\"" << p->value << "\" -> \"" << p->left->value << "\";\n";
+        prettyprint(p->left);
+    }
+    if(p->right){
+        std::cout << "\t\"" << p->value << "\" -> \"" << p->right->value << "\";\n";
+        prettyprint(p->right);
+    }
+}
+
+void ppwrapper(Node* p){
+    std::cout << "digraph G{ \n";
+    prettyprint(p);
+    std::cout << "}\n";
 }
 
 //-------------------------------[SyntaxTree Constructors/Destructor]-------------------------------
@@ -92,6 +118,7 @@ SyntaxTree::SyntaxTree(std::string e):expr(e){
         throw std::runtime_error("An Error occurred converting to postfix.");
     }
     build(root);
+    //ppwrapper(root);
     isBuilt = true;
     valid = validate(root);
     if(!valid){
@@ -121,7 +148,7 @@ SyntaxTree::~SyntaxTree(){
     freeTree(root);
 }
 
-//----------------------------------[SyntaxTree Member Functions]----------------------------------
+//----------------------------------[SyntaxTree Member Functions]-----------------------------------
 
 void SyntaxTree::setExpr(std::string e){
     expr = e;
@@ -135,6 +162,7 @@ void SyntaxTree::setExpr(std::string e){
         throw p;
     }
     build(root);
+    prettyprint(root);
     isBuilt = true;
     valid = validate(root);
     if(!valid){
@@ -147,63 +175,52 @@ void SyntaxTree::build(Node* n){
     Token t = exprstack.pop();
     n->type = t.type;
     n->value = t.value;
-    if(n->type == "operator"){
-        n->right = new Node;
-        build(n->right);
-        if(exprstack.size() == 0) return;
+    if(n->type == OP_T){
+        n->numchildren = 2;
+            //Build the righthand side of the tree first!!
+            n->right = new Node;
+            n->left = new Node;
+            build(n->right);
+            build(n->left);
+    }
+    if(n->type == NUMBER_T){
+        n->numchildren = 0;
+        n->left = nullptr;
+        n->right = nullptr;
+    }
+    if(n->type == FUNC_T){
+        n->numchildren = 1;
         n->left = new Node;
         build(n->left);
+        n->right = nullptr;
     }
-    else{
-        return;
-    }
-}
-
-double SyntaxTree::evaluate(){
-    return evaluate(root);
-}
-
-double SyntaxTree::evaluate(Node* n){
-    if(n->type == "number") return std::stod(n->value);
-    double lval, rval;
-
-    lval = evaluate(n->left);
-    rval = evaluate(n->right);
-    std::vector<double> args;
-    args.push_back(lval);
-    args.push_back(rval);
-
-    return ops[n->value](args);
 }
 
 bool SyntaxTree::validate(Node* n){
    if(n == nullptr) return true;
    //If the current node is an operator and either child is null,
    //that means the tree is invalid.
-   if(n->type == "operator"){
-       if(n->left == nullptr || n->right == nullptr){
-           return false;
-       }
+   if(n->type == OP_T){
+       if(n->left == nullptr || n->right  == nullptr){ return false; }
    }
 
    //If the current node is a number, and either child is not null,
    //then the tree is invalid.
-   if(n->type == "number"){
-       if(!(n->left == nullptr || n->right == nullptr)){
-           return false;
-       }
+   if(n->type == NUMBER_T){
+       if(n->left != nullptr || n->right != nullptr){ return false; }
    }
 
    bool l = validate(n->left);
    bool r = validate(n->right);
-
-   return l && r;
+   return l&&r;
 }
 
 
 std::string SyntaxTree::str(){
     return expr;
 }
+
+//------------------------------------[Evaluate the Expression]-------------------------------------
 
 double evaluate(std::string expr){
     double result;
@@ -215,4 +232,19 @@ double evaluate(std::string expr){
         throw e;
     }
     return result;
+}
+
+double SyntaxTree::evaluate(){
+    return evaluate(root);
+}
+
+double SyntaxTree::evaluate(Node* n){
+    if(n->type == NUMBER_T)
+        return std::stod(n->value);
+    else if(n->type == OP_T)
+        return ops[n->value](evaluate(n->left), evaluate(n->right));
+    else if(n->type == FUNC_T)
+        return funcs[n->value](evaluate(n->left));
+    else
+        throw std::runtime_error("Could not evaluate expression.");
 }

@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <iostream>
 
 struct ParseException : public std::exception {
    const char * what () const throw () {
@@ -22,6 +23,7 @@ class TokenStack{
         TokenStack();
         TokenStack(const TokenStack&);
         TokenStack& operator=(const TokenStack&);
+        friend std::ostream& operator<< (std::ostream&, const TokenStack&);
         ~TokenStack();
         void push(Token);
         Token pop();
@@ -34,6 +36,7 @@ class TokenStack{
         int numTokens;
         int top;
 };
+
 
 std::vector<Token> tokenize(std::string);
 TokenStack infix_to_postfix(std::vector<Token> list);

@@ -1,82 +1,74 @@
 #pragma once
 
-#include <vector>
 #include <stdexcept>
 #include <cmath>
 #include <cstdlib>
 
-double add_f(std::vector<double> args){
-    if(args.size() != 2){ throw std::runtime_error("Binary operator requires 2 arguments."); }
-    return args[0] + args[1];
+double add_f(double lval, double rval){
+    return lval + rval;
 }
 
-double sub_f(std::vector<double> args){
-    if(args.size() != 2){ throw std::runtime_error("Binary operator requires 2 arguments."); }
-    return args[0] - args[1];
+double sub_f(double lval, double rval){
+    return lval - rval;
 }
 
-double mul_f(std::vector<double> args){
-    if(args.size() != 2){ throw std::runtime_error("Binary operator requires 2 arguments."); }
-    return args[0] * args[1];
+double mul_f(double lval, double rval){
+    return lval * rval;
 }
 
-double div_f(std::vector<double> args){
-    if(args.size() != 2){ throw std::runtime_error("Binary operator requires 2 arguments."); }
-    return args[0] / args[1];    
+double div_f(double lval, double rval){
+    return lval / rval;    
 }
 
-double mod_f(std::vector<double> args){
-    if(args.size() != 2){ throw std::runtime_error("Binary operator requires 2 arguments."); }
-    return (int)args[0] % (int)args[1]; //TODO: This is wrong. use fmod() or somesuch
+double mod_f(double lval, double rval){
+    return (int)lval % (int)rval; //TODO: This is wrong. use fmod() or somesuch
 }
 
-double pow_f(std::vector<double> args){
-    if(args.size() != 2){ throw std::runtime_error("Binary operator requires 2 arguments."); }
-    return pow(args[0], args[1]);
+double pow_f(double lval, double rval){
+    return pow(lval, rval);
 }
 
-double rol_f(std::vector<double> args){
-    if(args.size() != 2){ throw std::runtime_error("Binary operator requires 2 arguments."); }
+double rol_f(double lval, double rval){
     int out = 0;
-    for(unsigned int i = 0; i < (unsigned int)args[0]; i++){
-        out += (rand() % (unsigned int)args[1]) + 1;
+    for(unsigned int i = 0; i < (unsigned int)lval; i++){
+        out += (rand() % (unsigned int)rval) + 1;
     }
     return out;
 }
 
-//double sin_f(std::vector<double> args){
+//double sin_f(double lval, double rval){
 //    if(args.size() != 1){ throw std::runtime_error("Function requires 1 argument"); }
 //
 //}
-//double cos_f(std::vector<double> args){
+//double cos_f(double lval, double rval){
 //    if(args.size() != 1){ throw std::runtime_error("Function requires 1 argument"); }
 //
 //}
-//double tan_f(std::vector<double> args){
+//double tan_f(double lval, double rval){
 //    if(args.size() != 1){ throw std::runtime_error("Function requires 1 argument"); }
 //
 //}
-//double csc_f(std::vector<double> args){
+//double csc_f(double lval, double rval){
 //    if(args.size() != 1){ throw std::runtime_error("Function requires 1 argument"); }
 //
 //}
-//double sec_f(std::vector<double> args){
+//double sec_f(double lval, double rval){
 //    if(args.size() != 1){ throw std::runtime_error("Function requires 1 argument"); }
 //
 //}
-//double cot_f(std::vector<double> args){
+//double cot_f(double lval, double rval){
 //    if(args.size() != 1){ throw std::runtime_error("Function requires 1 argument"); }
 //
 //}
-//double exp_f(std::vector<double> args){
+//double exp_f(double lval, double rval){
 //    if(args.size() != 1){ throw std::runtime_error("Function requires 1 argument"); }
 //
 //}
-//double log_f(std::vector<double> args){
+//double log_f(double lval, double rval){
 //    if(args.size() != 1){ throw std::runtime_error("Function requires 1 argument"); }
 //
 //}
-//double srt_f(std::vector<double> args){
+//double srt_f(double lval, double rval){
 //    if(args.size() != 1){ throw std::runtime_error("Function requires 1 argument"); }
 //
 //}

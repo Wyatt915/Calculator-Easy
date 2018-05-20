@@ -9,31 +9,24 @@
 #include <stdlib.h>
 std::vector<std::string> operators = {"d", "D", "x", "X", "+", "-", "*", "/", "^", "@", "(", ")"};
 std::vector<std::string> functions = {"sin", "cos", "tan", "log", "sqrt"};
-std::vector<std::string> constants = {"e", "pi", "phi"};
 
+static std::map<std::string, std::string> constants = {
+    { "phi", "1.61803398874989484820" },
+    { "pi",  "3.14159265358979323846" },
+    { "e",   "2.71828182845904523536" }
+};
 
 //---------------------------------------------[Token]---------------------------------------------
 
-int precedence(Token t){
-    char c = t.value[0];
-    switch(c){
-        case '+':
-        case '-':
-            return 0;
-        case 'x':
-        case 'X':
-        case '*':
-        case '/':
-            return 1;
-        case 'd':
-        case 'D':
-        case '@':
-        case '^':
-            return 2;
-    }
-    std::string err = "An error occured finding precedence. [";
-    throw std::runtime_error(err + c + "]");
-}
+static std::map<std::string, int> precedence = {
+    { "+", 0 },
+    { "-", 0 },
+    { "*", 1 },
+    { "/", 1 },
+    { "d", 2 },
+    { "^", 2 },
+    { "sin", 3}
+};
 
 //-------------------------------------------[TokenStack]-------------------------------------------
 
@@ -85,12 +78,21 @@ void TokenStack::push(Token t){
 
 Token TokenStack::pop(){
     if(numTokens <= 0){
-        throw std::runtime_error("Error: attempt to pop empty stack");
+        throw std::runtime_error("Attempt to pop empty stack.");
     }
     Token out = data[top];
     top--;
     numTokens--;
     return out;
+}
+
+std::ostream& operator<<(std::ostream& os, const TokenStack& t){
+    os << "-----------------\n";
+    for(size_t i = 0; i < t.numTokens; i++){
+        os << i << '\t' <<  t.data[i].value << "\n";
+    }
+    os << "-----------------\n";
+    return os;
 }
 
 //------------------------------------------[Tokenization]------------------------------------------
@@ -99,8 +101,7 @@ std::vector<Token> tokenize(std::string s){
     auto first = std::begin(s);
     auto last = std::begin(s);
     std::vector<Token> out;
-    std::string prevTokenType;
-    prevTokenType = NULL_T;
+    Token prevToken;
     while(first != std::end(s) || *first != '\0'){
         //Numbers
         if(isdigit(*first) || *first == '.'){
@@ -108,10 +109,9 @@ std::vector<Token> tokenize(std::string s){
             do{
                 last++;
             } while(last != std::end(s) && (isdigit(*last) || *last == '.'));
-
-            out.push_back(Token(NUMBER_T, std::string(first, last)));
+            prevToken = Token(NUMBER_T, std::string(first, last));
+            out.push_back(prevToken);
             first = last;
-            prevTokenType = NUMBER_T;
         }
 
         //functions and constants start with a letter and may contain letters
@@ -123,16 +123,17 @@ std::vector<Token> tokenize(std::string s){
             }while(last != std::end(s) && isalpha(*last));
             std::string temp(first, last);
             first = last;
-            if(is_in_list(temp, constants)){
-                if(temp == "e"){
-                    out.push_back(Token(NUMBER_T, "2.718281828"));
+            if(constants.count(temp)){
+                prevToken = Token(NUMBER_T, constants[temp]);
+                out.push_back(prevToken);
+            }
+            else if(is_in_list(temp, functions)){
+                //Handle implicit multiplication
+                if(prevToken.type == NUMBER_T || prevToken.value == ")"){
+                    out.push_back(Token(OP_T, "*"));
                 }
-                else if(temp == "pi"){
-                    out.push_back(Token(NUMBER_T, "3.141592653"));
-                }
-                else if(temp == "phi"){
-                    out.push_back(Token(NUMBER_T, "1.618"));
-                }
+                prevToken = Token(FUNC_T, temp);
+                out.push_back(prevToken);
             }
             else{
                 throw std::runtime_error(std::string("Unknown symbol: ") + temp);
@@ -141,33 +142,35 @@ std::vector<Token> tokenize(std::string s){
         //Handle the case of negative numbers. A '-' char indicates a
         //negative number if it comes at the beginning of the string,
         //or if it follows a previous operator.
-        else if(*first == '-' && prevTokenType != NUMBER_T && out.back().value != ")"){
+        else if(*first == '-' && prevToken.type != NUMBER_T && prevToken.value != ")"){
             first = last;
             do{
                 last++;
             } while(last != std::end(s) && (isdigit(*last) || *last == '.'));
-            out.push_back(Token(NUMBER_T, std::string(first, last)));
+            prevToken = Token(NUMBER_T, std::string(first, last));
+            out.push_back(prevToken);
             first = last;
-            prevTokenType = NUMBER_T;
-        }
-        
-        else if(is_in_list(std::string(first, first+1), operators)){
-            //Handle implicit lval argument of 1 on dice rolls when not explicitly stated
-            if(*first == 'd' && prevTokenType != NUMBER_T){
-                out.push_back(Token(NUMBER_T, "1"));
-            }    
-            //Handle implicit multiplication of parentheticals
-            if(*first == '(' && prevTokenType != NULL_T && (out.back().value == ")" || prevTokenType == NUMBER_T)){
-                out.push_back(Token(OP_T, "*"));
-                prevTokenType = OP_T;
-            }
-            out.push_back(Token(OP_T, std::string(first, first+1)));
-            first++;
-            last = first;
-            prevTokenType = OP_T;
         }
 
-        else{ throw std::runtime_error("Unknown symbol."); }
+        else if(is_in_list(std::string(first, first+1), operators)){
+            //Handle implicit lval argument of 1 on dice rolls when not explicitly stated
+            if(*first == 'd' && prevToken.type != NUMBER_T){
+                prevToken = Token(NUMBER_T, "1");
+                out.push_back(prevToken);
+            }    
+            //Handle implicit multiplication of parentheticals
+            if(*first == '(' && prevToken.type != NULL_T && (out.back().value == ")" || prevToken.type == NUMBER_T)){
+                prevToken = Token(OP_T, "*");
+                out.push_back(prevToken);
+                prevToken.type = OP_T;
+            }
+            prevToken = Token(OP_T, std::string(first, first+1));
+            out.push_back(prevToken);
+            first++;
+            last = first;
+        }
+
+        else{ throw std::runtime_error("Error in tokenization: unknown symbol."); }
     }
     return out;
 }
@@ -186,9 +189,9 @@ TokenStack infix_to_postfix(std::vector<Token> list){
                 postfix.push(t);
                 i++;
             }
-            //Case 2: If the incoming symbol is a left parenthesis, push it on
+            //Case 2: If the incoming symbol is a left parenthesis or a function, push it on
             //the stack.
-            else if (t.value == "("){
+            else if (t.value == "(" || t.type == FUNC_T){
                 opstack.push(t);
                 i++;
             }
@@ -205,6 +208,10 @@ TokenStack infix_to_postfix(std::vector<Token> list){
                     }
                     opstack.pop();//discard parentheses
                 }
+                //If there is a function on the stack, push it now.
+                if(opstack.peek().type == FUNC_T){
+                    postfix.push(opstack.pop());
+                }
                 i++;
             }
             //Case 4: If the operator stack is empty or contains a left parenthesis on
@@ -215,14 +222,14 @@ TokenStack infix_to_postfix(std::vector<Token> list){
             }
             //Case 5: If the incoming symbol has higher precedence than the
             //top of the stack, push it on the stack.
-            else if (precedence(t) > precedence(opstack.peek())){
+            else if (precedence[t.value] > precedence[opstack.peek().value]){
                 opstack.push(t);
                 i++;
             }
             //Case 6: If the incoming symbol has equal precedence with the
             //top of the stack, pop opstack and push it to postfix and then
             //push the incoming operator.
-            else if (precedence(t) == precedence(opstack.peek())){
+            else if (precedence[t.value] == precedence[opstack.peek().value]){
                 postfix.push(opstack.pop());
                 opstack.push(t);
                 i++;
@@ -252,6 +259,7 @@ TokenStack infix_to_postfix(std::vector<Token> list){
     catch(...){
         throw std::runtime_error("Invalid expression. Please try again.");
     }
+    //std::cout << postfix;
     return postfix;
 }
 
