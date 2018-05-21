@@ -19,3 +19,5 @@ $(EXEC): $(OBJECTS)
 clean:
 	rm -f $(OBJECTS)
 
+install:
+	cp $(EXEC) ~/bin/.
