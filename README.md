@@ -3,13 +3,16 @@ ce is an easy to use calculator for people born in the common era.
 
 ## Build
 Calculator (Easy) is easy to build:
+    
     $ make
 
 Calculator (Easy) is easy to install:
+    
     $ make install
 
 ## Usage
 Calculator (Easy) is easy to use:
+    
     $ ce 2+2
     4
 
