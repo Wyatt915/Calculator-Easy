@@ -21,3 +21,30 @@ Calculator (Easy) is easy to use:
 
     $ echo 3*5 | ce
     15
+
+### Operators and Functions
+The following basic operators are supported by ce:
+
+Operator | Description
+-------- | -----------
++,-,*,/ | (add, subtract, multiply, and divide)
+d | roll dice. "3d6" will roll 3 six-sided dice
+^ | exponentiation
+sin | 
+cos | 
+tan | 
+csc | 
+sec | 
+cot | 
+sqrt | square root
+log | computes the natural (base e) logarithm
+exp | raises e to the power of the supplied argument
+
+
+### Builtin Constants
+
+Symbol | Description
+------ | -----------
+e | Euler's number; base of the natural log
+pi | Circle constant; ratio of circumference to diameter
+phi | Golden ratio; ½(1+√5)

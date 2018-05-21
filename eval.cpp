@@ -149,31 +149,6 @@ std::vector<Token> tokenize(std::string s){
             first = last;
         }
 
-        //functions and constants start with a letter and may contain letters
-        //and numbers.
-        else if(isalpha(*first)){
-            last = first;
-            do{
-                last++;
-            }while(last != std::end(s) && isalpha(*last));
-            std::string temp(first, last);
-            first = last;
-            if(constants.count(temp)){
-                prevToken = Token(NUMBER_T, constants[temp]);
-                out.push_back(prevToken);
-            }
-            else if(funcs.count(temp)){
-                //Handle implicit multiplication
-                if(prevToken.type == NUMBER_T || prevToken.value == ")"){
-                    out.push_back(Token(OP_T, "*"));
-                }
-                prevToken = Token(FUNC_T, temp);
-                out.push_back(prevToken);
-            }
-            else{
-                throw std::runtime_error(std::string("Unknown symbol: ") + temp);
-            }
-        }
         //Handle the case of negative numbers. A '-' char indicates a
         //negative number if it comes at the beginning of the string,
         //or if it follows a previous operator.
@@ -202,6 +177,32 @@ std::vector<Token> tokenize(std::string s){
             out.push_back(prevToken);
             first++;
             last = first;
+        }
+        
+        //functions and constants start with a letter and may contain letters
+        //and numbers.
+        else if(isalpha(*first) && !isspace(*first)){
+            last = first;
+            do{
+                last++;
+            }while(last != std::end(s) && isalpha(*last));
+            std::string temp(first, last);
+            first = last;
+            if(constants.count(temp)){
+                prevToken = Token(NUMBER_T, constants[temp]);
+                out.push_back(prevToken);
+            }
+            else if(funcs.count(temp)){
+                //Handle implicit multiplication
+                if(prevToken.type == NUMBER_T || prevToken.value == ")"){
+                    out.push_back(Token(OP_T, "*"));
+                }
+                prevToken = Token(FUNC_T, temp);
+                out.push_back(prevToken);
+            }
+            else{
+                throw std::runtime_error(std::string("Unknown symbol: ") + temp);
+            }
         }
 
         else{ throw std::runtime_error("Error in tokenization: unknown symbol."); }
