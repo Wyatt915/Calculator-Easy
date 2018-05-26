@@ -1,12 +1,16 @@
 CC=gcc
 CXX=g++
 CXXFLAGS=-c -std=c++14 -Wall
-DEBUGFLAGS= -DDRAWGRAPH -g
 LNFLAGS=
 
 EXEC = ce
 SOURCES = $(wildcard *.cpp)
 OBJECTS = $(SOURCES:.cpp=.o)
+
+all: $(EXEC)
+
+debug: CXXFLAGS += -g -DDRAWGRAPH
+debug: $(EXEC)
 
 # Main target
 $(EXEC): $(OBJECTS) 
