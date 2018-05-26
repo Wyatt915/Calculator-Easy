@@ -5,7 +5,7 @@
 #include <stdexcept>
 #include <cstdlib> //rand
 #include <ctime>   //time
-#include <unistd.h>//getpid
+#include <unistd.h>//getpid, getopt
 
 //Robert Jenkins' 96 bit Mix Function
 //https://stackoverflow.com/a/323302
@@ -24,31 +24,60 @@ unsigned long mix(unsigned long a, unsigned long b, unsigned long c)
 }
 
 int main(int argc, char** argv){
-    unsigned long seed = mix(clock(), time(NULL), getpid());
-    srand(seed);
-    std::string s;
-    if (argc > 1){
-        for(int i = 1; i < argc; i++){
-            s += argv[i];
+    int c;
+    bool fmode = false;
+    bool imode = false;
+    opterr = 0; // don't print error messages.
+    while ((c = getopt(argc, argv, "fhi")) != -1) {
+        switch (c) {
+            case 'f':
+                std::cout << "financial-mode\n";
+                fmode = true;
+                break;
+            case 'h':
+                std::cout << "this is the placeholder help text.\n";
+                return 0;
+            case 'i':
+                std::cout << "interactive-mode\n";
+                imode = true;
+                break;
+            case '?':
+            default:
+                std::cerr << "Unknown option: " << char(c) << '\n';
+                return 1;
         }
     }
-    else{
-        std::cin >> s;
-    }
+    
+    // Needed for dice rolling
+    unsigned long seed = mix(clock(), time(NULL), getpid());
+    srand(seed);
 
-    try{
-        #ifdef DRAWGRAPH
-        std::cerr << evaluate(s) << '\n';
-        #else
-        std::cout << evaluate(s) << '\n';
-#endif
-    }
-    catch(std::runtime_error& e){
-        std::cerr << e.what() << std::endl;
-        return 1;
-    }
-    catch(...){
-        std::cerr << "An unknown error occured.\n";
+    if (!(imode || fmode)) {
+        std::string s;
+        if (argc > 1){
+            for(int i = 1; i < argc; i++){
+                s += argv[i];
+            }
+        }
+        else{
+            std::cin >> s;
+        }
+
+        try{
+            #ifdef DRAWGRAPH
+            std::cerr << evaluate(s) << '\n';
+            #else
+            std::cout << evaluate(s) << '\n';
+            #endif
+        }
+        catch(std::runtime_error& e){
+            std::cerr << e.what() << std::endl;
+            return 1;
+        }
+        catch(...){
+            std::cerr << "An unknown error occured.\n";
+            return 2;
+        }
     }
     return 0;
 }
