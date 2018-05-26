@@ -37,8 +37,11 @@ int main(int argc, char** argv){
     }
 
     try{
-        //evaluate(s);
+        #ifdef DRAWGRAPH
+        evaluate(s);
+        #else
         std::cout << evaluate(s) << '\n';
+#endif
     }
     catch(std::runtime_error& e){
         std::cerr << e.what() << std::endl;

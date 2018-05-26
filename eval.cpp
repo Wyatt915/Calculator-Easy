@@ -101,7 +101,12 @@ bool TokenStack::not_empty(){
 }
 
 Token TokenStack::peek(){
-    return data[top];
+    if(numTokens > 0){
+        return data[top];
+    }
+    else{
+        return Token(NULL_T, "");
+    }
 }
 
 void TokenStack::push(Token t){
@@ -357,13 +362,14 @@ Node* copyTree(Node* n){
 //Using the graphviz dot program
 void prettyprint(Node* p)
 {
+    std::cout << "\t\"" << p << "\" [label=\"" << p->value << "\"];\n";
     if(!p) return;
     if(p->left){
-        std::cout << "\t\"" << p->value << "\" -> \"" << p->left->value << "\";\n";
+        std::cout << "\t\"" << p << "\" -> \"" << p->left << "\";\n";
         prettyprint(p->left);
     }
     if(p->right){
-        std::cout << "\t\"" << p->value << "\" -> \"" << p->right->value << "\";\n";
+        std::cout << "\t\"" << p << "\" -> \"" << p->right << "\";\n";
         prettyprint(p->right);
     }
 }
@@ -389,7 +395,9 @@ SyntaxTree::SyntaxTree(std::string e):expr(e){
         throw std::runtime_error("An Error occurred converting to postfix.");
     }
     build(root);
-    //ppwrapper(root);
+    #ifdef DRAWGRAPH
+        ppwrapper(root);
+    #endif
     isBuilt = true;
     valid = validate(root);
     if(!valid){
