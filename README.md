@@ -16,7 +16,10 @@ Calculator (Easy) is easy to use:
     $ ce 2+2
     4
 
-    $ ce "(log(e^2)*phi-sin(pi/2))^2"
+    $ ce '(e^pi)-pi'
+    19.9990999791895
+
+    $ ce '(log(e^2)*phi-sin(pi/2))^2'
     5
 
     $ echo 3*5 | ce
@@ -30,12 +33,13 @@ Operator | Description
 +,-,*,/ | (add, subtract, multiply, and divide)
 d | roll dice. "3d6" will roll 3 six-sided dice
 ^ | exponentiation
-sin | 
-cos | 
-tan | 
-csc | 
-sec | 
-cot | 
+! | factorial. Evaluates as Γ(x+1) for non-integers.
+sin | Basic Trig
+cos | "
+tan | "
+csc | "
+sec | "
+cot | "
 sqrt | square root
 log | computes the natural (base e) logarithm
 exp | raises e to the power of the supplied argument

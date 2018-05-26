@@ -1,6 +1,7 @@
 #include "eval.hpp"
 
 #include <iostream>
+#include <iomanip>
 #include <string>
 #include <stdexcept>
 #include <cstdlib> //rand
@@ -67,7 +68,7 @@ int main(int argc, char** argv){
             #ifdef DRAWGRAPH
             std::cerr << evaluate(s) << '\n';
             #else
-            std::cout << evaluate(s) << '\n';
+            std::cout << std::setprecision(15)  << evaluate(s) << '\n';
             #endif
         }
         catch(std::runtime_error& e){
