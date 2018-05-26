@@ -26,6 +26,7 @@ static std::map<std::string, std::function<double(double, double)> > ops = {
     { "-", sub_f },
     { "*", mul_f },
     { "/", div_f },
+    { "%", mod_f },
     { "^", pow_f },
     { "d", rol_f }
 };
@@ -34,12 +35,13 @@ static std::map<std::string, std::function<double(double)> > funcs = {
     { "sin", sin },
     { "cos", cos },
     { "tan", tan },
-    //{ "csc", csc },
-    //{ "sec", sec },
-    //{ "cot", cot },
+    { "csc", csc },
+    { "sec", sec },
+    { "cot", cot },
     { "exp", exp },
     { "log", log },
-    { "sqrt", sqrt }
+    { "sqrt", sqrt },
+    { "!", fact }
 };
 
 static std::map<std::string, std::string> constants = {
@@ -53,6 +55,7 @@ static std::map<std::string, int> precedence = {
     { "-", 0 },
     { "*", 1 },
     { "/", 1 },
+    { "%", 1 },
     { "d", 2 },
     { "^", 2 }
 };
@@ -186,7 +189,7 @@ std::vector<Token> tokenize(std::string s){
         
         //functions and constants start with a letter and may contain letters
         //and numbers.
-        else if(isalpha(*first) && !isspace(*first)){
+        else if((isalpha(*first) && !isspace(*first)) || *first == '!'){
             last = first;
             do{
                 last++;
@@ -199,7 +202,7 @@ std::vector<Token> tokenize(std::string s){
             }
             else if(funcs.count(temp)){
                 //Handle implicit multiplication
-                if(prevToken.type == NUMBER_T || prevToken.value == ")"){
+                if((prevToken.type == NUMBER_T || prevToken.value == ")") && temp != "!"){
                     out.push_back(Token(OP_T, "*"));
                 }
                 prevToken = Token(FUNC_T, temp);
@@ -224,8 +227,9 @@ TokenStack infix_to_postfix(std::vector<Token> list){
         while(i < list.size()){
             Token t = list[i];
             //Case 1: Push operands (numbers) as they arrive. This is the only case
-            //involving operands.
-            if(t.type == NUMBER_T){
+            //involving operands. The factorial is already used as a postfix operator:
+            //go ahead and put it on the output stack directly.
+            if(t.type == NUMBER_T || t.value == "!"){
                 postfix.push(t);
                 i++;
             }

@@ -1,6 +1,7 @@
 CC=gcc
 CXX=g++
-CXXFLAGS=-c -g -std=c++14 -Wall
+CXXFLAGS=-c -std=c++14 -Wall
+DEBUGFLAGS= -DDRAWGRAPH -g
 LNFLAGS=
 
 EXEC = ce
@@ -10,7 +11,7 @@ OBJECTS = $(SOURCES:.cpp=.o)
 # Main target
 $(EXEC): $(OBJECTS) 
 	$(CXX) $(OBJECTS) $(LNFLAGS) -o $(EXEC)
- 
+
 # To obtain object files
 %.o: %.cpp
 	$(CXX) $(CXXFLAGS) $< -o $@

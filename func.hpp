@@ -36,3 +36,29 @@ double rol_f(double lval, double rval){
     return out;
 }
 
+double csc(double arg){
+    return 1/sin(arg);
+}
+
+double sec(double arg){
+    return 1/cos(arg);
+}
+
+double cot(double arg){
+    return 1/tan(arg);
+}
+
+double fact(double arg){
+    double intpart;
+    //If our value is an integer
+    double out = 1;
+    if(modf(arg, &intpart) == 0.0){
+        for(int i = 2; i <= intpart; i++){
+            out *= i;
+        }
+    }
+    else{
+        out = tgamma(arg+1);
+    }
+    return out;
+}

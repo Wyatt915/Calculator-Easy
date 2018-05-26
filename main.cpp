@@ -38,7 +38,7 @@ int main(int argc, char** argv){
 
     try{
         #ifdef DRAWGRAPH
-        evaluate(s);
+        std::cerr << evaluate(s) << '\n';
         #else
         std::cout << evaluate(s) << '\n';
 #endif
