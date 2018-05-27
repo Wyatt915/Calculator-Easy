@@ -1,6 +1,5 @@
 #include "eval.hpp"
 #include "func.hpp"
-#include "parse.hpp"
 #include "utils.hpp"
 
 #include <algorithm>
@@ -327,7 +326,7 @@ class SyntaxTree{
         double evaluate();
         std::string str();
         void setExpr(std::string);
-        bool validate(Node*);
+        bool valid(Node*);
         bool operator==(const SyntaxTree& b){ return expr == b.expr; }
         bool operator!=(const SyntaxTree& b){ return expr != b.expr; }
         SyntaxTree& operator=(const SyntaxTree&);
@@ -336,7 +335,6 @@ class SyntaxTree{
         Node* root;
         std::string expr;
         bool isBuilt;
-        bool valid;
         TokenStack exprstack;
         void build(Node*);
         double evaluate(Node*);
@@ -387,7 +385,6 @@ void ppwrapper(Node* p){
 //-------------------------------[SyntaxTree Constructors/Destructor]-------------------------------
 
 SyntaxTree::SyntaxTree(std::string e):expr(e){
-    root = new Node;
     tolower(expr);
     try{
         exprstack = infix_to_postfix(tokenize(expr));
@@ -398,13 +395,13 @@ SyntaxTree::SyntaxTree(std::string e):expr(e){
     catch(...){
         throw std::runtime_error("An Error occurred converting to postfix.");
     }
+    root = new Node;
     build(root);
     #ifdef DRAWGRAPH
         ppwrapper(root);
     #endif
     isBuilt = true;
-    valid = validate(root);
-    if (!valid){
+    if (!valid(root)){
         throw std::runtime_error("Malformed syntax.");
     }
 }
@@ -436,7 +433,6 @@ SyntaxTree::~SyntaxTree(){
 void SyntaxTree::setExpr(std::string e){
     expr = e;
     freeTree(root);
-    root = new Node;
     tolower(expr);
     try{
         exprstack = infix_to_postfix(tokenize(expr));
@@ -444,21 +440,25 @@ void SyntaxTree::setExpr(std::string e){
     catch(std::runtime_error& p){
         throw p;
     }
+    root = new Node;
     build(root);
     prettyprint(root);
     isBuilt = true;
-    valid = validate(root);
-    if (!valid){
+    if (!valid(root)){
         throw std::runtime_error("Malformed syntax.");
     }
 }
 
 void SyntaxTree::build(Node* n){
-    if (exprstack.size() == 0) return;
+    if (exprstack.size() == 0){
+        delete n;
+        n = nullptr;
+        return;
+    }
     Token t = exprstack.pop();
     n->type = t.type;
     n->value = t.value;
-    if (n->type == OP_T){
+    if (t.type == OP_T){
         n->numchildren = 2;
             // Build the righthand side of the tree first!!
             n->right = new Node;
@@ -466,12 +466,12 @@ void SyntaxTree::build(Node* n){
             build(n->right);
             build(n->left);
     }
-    if (n->type == NUMBER_T){
+    if (t.type == NUMBER_T){
         n->numchildren = 0;
         n->left = nullptr;
         n->right = nullptr;
     }
-    if (n->type == FUNC_T){
+    if (t.type == FUNC_T){
         n->numchildren = 1;
         n->left = new Node;
         build(n->left);
@@ -479,7 +479,7 @@ void SyntaxTree::build(Node* n){
     }
 }
 
-bool SyntaxTree::validate(Node* n){
+bool SyntaxTree::valid(Node* n){
     if (n == nullptr) return true;
     // If the current node is an operator and either child is null,
     // that means the tree is invalid.
@@ -489,16 +489,20 @@ bool SyntaxTree::validate(Node* n){
 
     // If the current node is a number, and either child is not null,
     // then the tree is invalid.
-    if (n->type == NUMBER_T){
+    else if (n->type == NUMBER_T){
         if (n->left != nullptr || n->right != nullptr){ return false; }
     }
 
-    if (n->type == FUNC_T){
+    else if (n->type == FUNC_T){
         if (n->left == nullptr && n->right != nullptr){ return false; }
     }
 
-    bool l = validate(n->left);
-    bool r = validate(n->right);
+    else{
+        return false;
+    }
+
+    bool l = valid(n->left);
+    bool r = valid(n->right);
     return l&&r;
 }
 
