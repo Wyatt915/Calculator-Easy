@@ -30,7 +30,7 @@ The following basic operators are supported by ce:
 
 Operator | Description
 -------- | -----------
-+,-,*,/ | (add, subtract, multiply, and divide)
++,-,\*,/ | add, subtract, multiply, and divide
 d | roll dice. "3d6" will roll 3 six-sided dice
 ^ | exponentiation
 ! | factorial. Evaluates as Γ(x+1) for non-integers.

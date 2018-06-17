@@ -6,9 +6,9 @@
 #include <cmath>
 #include <ctype.h>
 #include <functional>
-#include <iomanip>
 #include <iostream>
 #include <map>
+#include <sstream>
 #include <stdexcept>
 #include <stdlib.h>
 #include <string>
@@ -16,6 +16,8 @@
 
 #define LFT 0
 #define RGT 1
+
+extern std::vector<double> globalHistory;
 
 //------------------------------------[Operators and Functions]-------------------------------------
 
@@ -155,6 +157,31 @@ std::vector<Token> tokenize(std::string s){
             out.push_back(prevToken);
             first = last;
         }
+        
+        else if (*first == '['){
+            last = first++;
+            do{
+                last++;
+            } while(last != std::end(s) && *last != ']');
+            
+            if (*last != ']'){
+                std::cerr << *last << '\n';
+                throw std::runtime_error("Missing ']'.");
+            }
+            double d = evaluate(std::string(first, last));
+            if(d < 0){
+                throw std::runtime_error("Error: cannot travel back in time.");
+            }
+            unsigned int val = d;
+            if(val >= globalHistory.size()){
+                throw std::runtime_error("Error: Cannot see the future.");
+            }
+            std::stringstream ss;
+            ss << globalHistory[val];
+            prevToken = Token(NUMBER_T, ss.str());
+            out.push_back(prevToken);
+            first=++last;
+        }
 
         // Handle the case of negative numbers. A '-' char indicates a
         // negative number if it comes at the beginning of the string,
@@ -212,7 +239,7 @@ std::vector<Token> tokenize(std::string s){
             }
         }
 
-        else{ throw std::runtime_error("Error in tokenization: unknown symbol."); }
+        else{ throw std::runtime_error("Unknown symbol."); }
     }
     return out;
 }

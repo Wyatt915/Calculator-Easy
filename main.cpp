@@ -8,6 +8,8 @@
 #include <ctime>   //time
 #include <unistd.h>//getpid, getopt
 
+std::vector<double> globalHistory;
+
 //Robert Jenkins' 96 bit Mix Function
 //https://stackoverflow.com/a/323302
 unsigned long mix(unsigned long a, unsigned long b, unsigned long c)
@@ -79,6 +81,27 @@ int main(int argc, char** argv){
             std::cerr << "An unknown error occured.\n";
             return 2;
         }
+    }
+    else if(imode){
+        unsigned int counter = 0;
+        double res;
+        std::string expr;
+        while(true){
+            std::cout << "> ";
+            std::getline(std::cin, expr);
+            try{
+                res = evaluate(expr);
+                globalHistory.push_back(res);
+                std::cout << "[" << counter << "]\t" << std::setprecision(15) << res << '\n';
+                counter++;
+            }
+            catch(std::runtime_error& e){
+                std::cerr << e.what() << std::endl;
+            }
+            catch(...){
+                std::cerr << "An unknown error occured.\n";
+            }
+        } 
     }
     return 0;
 }
