@@ -160,9 +160,12 @@ std::vector<Token> tokenize(std::string s){
         
         else if (*first == '['){
             last = first++;
+            int bracecount = 1;
             do{
                 last++;
-            } while(last != std::end(s) && *last != ']');
+                if(*last == '[') bracecount++;
+                if(*last == ']') bracecount--;
+            } while(last != std::end(s) && (*last != ']' || bracecount > 0));
             
             if (*last != ']'){
                 std::cerr << *last << '\n';
