@@ -85,14 +85,16 @@ int main(int argc, char** argv){
     else if(imode){
         unsigned int counter = 0;
         double res;
+        std::string spaces = "                    ";
         std::string expr;
         while(true){
-            std::cout << "> ";
+            std::cout << ">>> ";
             std::getline(std::cin, expr);
+            if(expr == "q") break;
             try{
                 res = evaluate(expr);
                 globalHistory.push_back(res);
-                std::cout << "[" << counter << "]\t" << std::setprecision(15) << res << '\n';
+                std::cout << spaces <<  "[" << counter << "]\r" <<  std::setprecision(15) << res << "\n\n";
                 counter++;
             }
             catch(std::runtime_error& e){

@@ -32,6 +32,7 @@ class TokenStack{
         bool is_empty();
         bool not_empty();
     private:
+        size_t capacity = 1024;
         Token* data;
         size_t numTokens;
         int top;

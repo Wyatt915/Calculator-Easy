@@ -52,3 +52,56 @@ Symbol | Description
 e | Euler's number; base of the natural log
 pi | Circle constant; ratio of circumference to diameter
 phi | Golden ratio; ½(1+√5)
+
+### interactive-mode
+Interactive-mode is reached by running
+    $ ce -i
+When in interactive-mode, the user is presented with a prompt. The user may input an an expression,
+followed by pressing enter. The result will be presented like so:
+
+    $ ./ce -i
+    interactive-mode
+    >>> sqrt(5)
+    2.23606797749979    [0]
+    
+    >>>
+
+The result is printed, followed by a number in [brackets]. The number in [brackets] is used to
+recall previous results. For example:
+
+    $ ./ce -i
+    interactive-mode
+    >>> sqrt(5)
+    2.23606797749979    [0]
+    
+    >>> 1 + [0]
+    3.23606797749979    [1]
+    
+    >>> [1]/2
+    1.61803398874989    [2]
+    
+    >>>
+
+Furthermore, brackets can contain not only integer literals, but expressions and nested brackets
+too:
+
+    $ ./ce -i
+    interactive-mode
+    >>> 1+1
+    2                   [0]
+
+    >>> [1-1] + 1
+    3                   [1]
+
+    >>> [3-[0]]
+    3                   [2]
+
+    >>>
+
+To exit interactive-mode, simply type 'q':
+    
+    $ ./ce -i
+    interactive-mode
+    >>> q
+    $
+

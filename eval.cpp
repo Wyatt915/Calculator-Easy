@@ -2,6 +2,7 @@
 #include "func.hpp"
 #include "utils.hpp"
 
+#include <iomanip>
 #include <algorithm>
 #include <cmath>
 #include <ctype.h>
@@ -69,13 +70,13 @@ static std::map<std::string, int> precedence = {
 //-------------------------------------------[TokenStack]-------------------------------------------
 
 TokenStack::TokenStack():numTokens(0), top(-1){
-    data = new Token[1024];
+    data = new Token[capacity];
 }
 
 TokenStack::TokenStack(const TokenStack& other){
     numTokens = other.numTokens;
     top = other.top;
-    data = new Token[1024];
+    data = new Token[capacity];
     std::copy(other.data, other.data + numTokens, data);
 }
 
@@ -83,7 +84,8 @@ TokenStack& TokenStack::operator=(const TokenStack& other){
     delete[] data; // This is guaranteed to be allocated beforehand.
     numTokens = other.numTokens;
     top = other.top;
-    data = new Token[1024];
+    capacity = other.capacity;
+    data = new Token[capacity];
     std::copy(other.data, other.data + numTokens, data);
     return *this;
 }
@@ -114,6 +116,15 @@ Token TokenStack::peek(){
 }
 
 void TokenStack::push(Token t){
+    if(numTokens >= capacity){
+        Token* temp = new Token[capacity];
+        std::copy(data, data+numTokens, temp);
+        delete[] data;
+        data = new Token[capacity*2];
+        std::copy(temp, temp+numTokens, data);
+        capacity *= 2;
+        delete[] temp;
+    }
     top++;
     data[top] = t;
     numTokens++;
@@ -147,19 +158,27 @@ std::vector<Token> tokenize(std::string s){
     Token prevToken;
     while(first != std::end(s) || *first != '\0'){
         std::string temp(first, first+1);
+        // Ignore spaces
+        if (isspace(*first)){
+            first++;
+        }
+
         // Numbers
-        if (isdigit(*first) || *first == '.'){
+        else if (isdigit(*first) || *first == '.'){
             last = first;
             do{
                 last++;
             } while(last != std::end(s) && (isdigit(*last) || *last == '.'));
-            prevToken = Token(NUMBER_T, std::string(first, last));
+            prevToken = Token(NUMB_T, std::string(first, last));
             out.push_back(prevToken);
             first = last;
         }
         
+        // Evaluate expressions within brackets.
         else if (*first == '['){
             last = first++;
+
+            // Find outermost matching brackets
             int bracecount = 1;
             do{
                 last++;
@@ -171,17 +190,19 @@ std::vector<Token> tokenize(std::string s){
                 std::cerr << *last << '\n';
                 throw std::runtime_error("Missing ']'.");
             }
+            // Done matching braces
+
             double d = evaluate(std::string(first, last));
             if(d < 0){
-                throw std::runtime_error("Error: cannot travel back in time.");
+                throw std::runtime_error("Error: values within [brackets] must be >= 0.");
             }
             unsigned int val = d;
             if(val >= globalHistory.size()){
-                throw std::runtime_error("Error: Cannot see the future.");
+                throw std::runtime_error("Error: values within [brackets] must not exceed the number of solved expressions");
             }
             std::stringstream ss;
-            ss << globalHistory[val];
-            prevToken = Token(NUMBER_T, ss.str());
+            ss << std::setprecision(15) << globalHistory[val];
+            prevToken = Token(NUMB_T, ss.str());
             out.push_back(prevToken);
             first=++last;
         }
@@ -189,28 +210,29 @@ std::vector<Token> tokenize(std::string s){
         // Handle the case of negative numbers. A '-' char indicates a
         // negative number if it comes at the beginning of the string,
         // or if it follows a previous operator.
-        else if (*first == '-' && prevToken.type != NUMBER_T && prevToken.value != ")"){
+        else if (*first == '-' && prevToken.type != NUMB_T && prevToken.value != ")"){
             first = last;
             do{
                 last++;
             } while(last != std::end(s) && (isdigit(*last) || *last == '.'));
-            prevToken = Token(NUMBER_T, std::string(first, last));
+            prevToken = Token(NUMB_T, std::string(first, last));
             out.push_back(prevToken);
             first = last;
         }
+
         else if (ops.count(temp) || temp == "(" || temp == ")"){
             // Handle implicit lval argument of 1 on dice rolls when not explicitly stated
-            if (*first == 'd' && prevToken.type != NUMBER_T){
-                prevToken = Token(NUMBER_T, "1");
+            if (*first == 'd' && prevToken.type != NUMB_T){
+                prevToken = Token(NUMB_T, "1");
                 out.push_back(prevToken);
             }    
             // Handle implicit multiplication of parentheticals
-            if (*first == '(' && prevToken.type != NULL_T && (out.back().value == ")" || prevToken.type == NUMBER_T)){
-                prevToken = Token(OP_T, "*");
+            if (*first == '(' && prevToken.type != NULL_T && (out.back().value == ")" || prevToken.type == NUMB_T)){
+                prevToken = Token(OPER_T, "*");
                 out.push_back(prevToken);
-                prevToken.type = OP_T;
+                prevToken.type = OPER_T;
             }
-            prevToken = Token(OP_T, std::string(first, first+1));
+            prevToken = Token(OPER_T, std::string(first, first+1));
             out.push_back(prevToken);
             first++;
             last = first;
@@ -226,13 +248,13 @@ std::vector<Token> tokenize(std::string s){
             std::string temp(first, last);
             first = last;
             if (constants.count(temp)){
-                prevToken = Token(NUMBER_T, constants[temp]);
+                prevToken = Token(NUMB_T, constants[temp]);
                 out.push_back(prevToken);
             }
             else if (funcs.count(temp)){
                 // Handle implicit multiplication
-                if ((prevToken.type == NUMBER_T || prevToken.value == ")") && temp != "!"){
-                    out.push_back(Token(OP_T, "*"));
+                if ((prevToken.type == NUMB_T || prevToken.value == ")") && temp != "!"){
+                    out.push_back(Token(OPER_T, "*"));
                 }
                 prevToken = Token(FUNC_T, temp);
                 out.push_back(prevToken);
@@ -241,8 +263,12 @@ std::vector<Token> tokenize(std::string s){
                 throw std::runtime_error(std::string("Unknown symbol: ") + temp);
             }
         }
-
-        else{ throw std::runtime_error("Unknown symbol."); }
+        
+        // Catch any other cases
+        else{
+            
+            throw std::runtime_error(std::string("Unknown symbol.") + std::string(first, last));
+        }
     }
     return out;
 }
@@ -258,7 +284,7 @@ TokenStack infix_to_postfix(std::vector<Token> list){
             // Case 1: Push operands (numbers) as they arrive. This is the only case
             // involving operands. The factorial is already used as a postfix operator:
             // go ahead and put it on the output stack directly.
-            if (t.type == NUMBER_T || t.value == "!"){
+            if (t.type == NUMB_T || t.value == "!"){
                 postfix.push(t);
                 i++;
             }
@@ -321,7 +347,7 @@ TokenStack infix_to_postfix(std::vector<Token> list){
         while(opstack.not_empty()){
             postfix.push(opstack.pop());
             Token temp = postfix.peek();
-            if ((temp.type == OP_T) && (temp.value == "(" || temp.value == ")")){
+            if ((temp.type == OPER_T) && (temp.value == "(" || temp.value == ")")){
                 throw std::runtime_error("Mismatched Parentheses");
             }
         }
@@ -488,7 +514,7 @@ void SyntaxTree::build(Node* n){
     Token t = exprstack.pop();
     n->type = t.type;
     n->value = t.value;
-    if (t.type == OP_T){
+    if (t.type == OPER_T){
         n->numchildren = 2;
             // Build the righthand side of the tree first!!
             n->right = new Node;
@@ -496,7 +522,7 @@ void SyntaxTree::build(Node* n){
             build(n->right);
             build(n->left);
     }
-    if (t.type == NUMBER_T){
+    if (t.type == NUMB_T){
         n->numchildren = 0;
         n->left = nullptr;
         n->right = nullptr;
@@ -513,13 +539,13 @@ bool SyntaxTree::valid(Node* n){
     if (n == nullptr) return true;
     // If the current node is an operator and either child is null,
     // that means the tree is invalid.
-    if (n->type == OP_T){
+    if (n->type == OPER_T){
         if (n->left == nullptr || n->right == nullptr){ return false; }
     }
 
     // If the current node is a number, and either child is not null,
     // then the tree is invalid.
-    else if (n->type == NUMBER_T){
+    else if (n->type == NUMB_T){
         if (n->left != nullptr || n->right != nullptr){ return false; }
     }
 
@@ -530,10 +556,9 @@ bool SyntaxTree::valid(Node* n){
     else{
         return false;
     }
-
-    bool l = valid(n->left);
-    bool r = valid(n->right);
-    return l&&r;
+    
+    // The whole tree is valid iff the left and right subtrees are both valid.
+    return valid(n->left) && valid(n->right);
 }
 
 
@@ -560,9 +585,9 @@ double SyntaxTree::evaluate(){
 }
 
 double SyntaxTree::evaluate(Node* n){
-    if (n->type == NUMBER_T)
+    if (n->type == NUMB_T)
         return std::stod(n->value);
-    else if (n->type == OP_T)
+    else if (n->type == OPER_T)
         return ops[n->value](evaluate(n->left), evaluate(n->right));
     else if (n->type == FUNC_T)
         return funcs[n->value](evaluate(n->left));
