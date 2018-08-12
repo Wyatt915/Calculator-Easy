@@ -157,7 +157,6 @@ std::vector<Token> tokenize(std::string s){
     std::vector<Token> out;
     Token prevToken;
     while(first != std::end(s) || *first != '\0'){
-        std::string temp(first, first+1);
         // Ignore spaces
         if (isspace(*first)){
             first++;
@@ -204,7 +203,7 @@ std::vector<Token> tokenize(std::string s){
             ss << std::setprecision(15) << globalHistory[val];
             prevToken = Token(NUMB_T, ss.str());
             out.push_back(prevToken);
-            first=++last;
+            first = ++last;
         }
 
         // Handle the case of negative numbers. A '-' char indicates a
@@ -220,27 +219,34 @@ std::vector<Token> tokenize(std::string s){
             first = last;
         }
 
-        else if (ops.count(temp) || temp == "(" || temp == ")"){
-            // Handle implicit lval argument of 1 on dice rolls when not explicitly stated
-            if (*first == 'd' && prevToken.type != NUMB_T){
-                prevToken = Token(NUMB_T, "1");
-                out.push_back(prevToken);
-            }    
-            // Handle implicit multiplication of parentheticals
-            if (*first == '(' && prevToken.type != NULL_T && (out.back().value == ")" || prevToken.type == NUMB_T)){
-                prevToken = Token(OPER_T, "*");
-                out.push_back(prevToken);
-                prevToken.type = OPER_T;
-            }
+        // parenthesis
+        else if (*first == '(' || *first == ')'){
             prevToken = Token(OPER_T, std::string(first, first+1));
             out.push_back(prevToken);
-            first++;
+            first = ++last;
+        }
+
+        // Operators
+        else if (!isalnum(*first)){
             last = first;
+            do{
+                last++;
+                // keep going until we reach a number, letter, space, or paren.
+            } while (last != std::end(s) && ispunct(*last) && !is_in_list(*last, std::string("()[].")));
+            std::string op(first, last);
+            if (ops.count(op)){
+                prevToken = Token(OPER_T, op);
+                out.push_back(prevToken);
+            }
+            else {
+                throw std::runtime_error(std::string("Unknown operator: ") + op);
+            }
+            first = last;
         }
         
         // functions and constants start with a letter and may contain letters
         // and numbers.
-        else if ((isalpha(*first) && !isspace(*first)) || *first == '!'){
+        else if ((isalpha(*first) && !isspace(*first))){
             last = first;
             do{
                 last++;
@@ -252,13 +258,13 @@ std::vector<Token> tokenize(std::string s){
                 out.push_back(prevToken);
             }
             else if (funcs.count(temp)){
-                // Handle implicit multiplication
-                if ((prevToken.type == NUMB_T || prevToken.value == ")") && temp != "!"){
-                    out.push_back(Token(OPER_T, "*"));
-                }
                 prevToken = Token(FUNC_T, temp);
                 out.push_back(prevToken);
             }
+            else if (ops.count(temp)){
+                prevToken = Token(OPER_T, temp);
+            }
+
             else{
                 throw std::runtime_error(std::string("Unknown symbol: ") + temp);
             }
@@ -273,6 +279,25 @@ std::vector<Token> tokenize(std::string s){
     return out;
 }
 
+void parse(std::vector<Token>& tkstream){
+    if (tkstream.size() <= 1) return;
+    auto it = tkstream.begin();
+    Token prv;
+    while(it != tkstream.end()){
+        // Handle implicit multiplication
+        if ((it->type == FUNC_T || it->type == NUMB_T || it->value == "(") &&
+            (prv.type == NUMB_T || prv.value == ")")){
+            it = tkstream.insert(it, Token(OPER_T, "*"));
+        }
+
+        // Handle implicit lval argument of 1 on dice rolls when not explicitly stated
+        if (it->value == "d" && (prv.type == NULL_T || prv.type == OPER_T)){
+            it = tkstream.insert(it, Token(NUMB_T, "1"));
+        }
+        prv = *it;    
+        it++;
+    }
+}
 
 TokenStack infix_to_postfix(std::vector<Token> list){
     TokenStack postfix;
@@ -376,20 +401,16 @@ struct Node{
 
 class SyntaxTree{
     public:    
-        SyntaxTree(std::string e);
+        SyntaxTree(const std::vector<Token>&);
         SyntaxTree();
         SyntaxTree(const SyntaxTree&);
         double evaluate();
         std::string str();
-        void setExpr(std::string);
         bool valid(Node*);
-        bool operator==(const SyntaxTree& b){ return expr == b.expr; }
-        bool operator!=(const SyntaxTree& b){ return expr != b.expr; }
         SyntaxTree& operator=(const SyntaxTree&);
         ~SyntaxTree();
     private:
         Node* root;
-        std::string expr;
         bool isBuilt;
         TokenStack exprstack;
         void build(Node*);
@@ -440,10 +461,9 @@ void ppwrapper(Node* p){
 
 //-------------------------------[SyntaxTree Constructors/Destructor]-------------------------------
 
-SyntaxTree::SyntaxTree(std::string e):expr(e){
-    tolower(expr);
+SyntaxTree::SyntaxTree(const std::vector<Token>& tkstream){
     try{
-        exprstack = infix_to_postfix(tokenize(expr));
+        exprstack = infix_to_postfix(tkstream);
     }
     catch(std::runtime_error& p){
         throw p;
@@ -470,13 +490,11 @@ SyntaxTree::SyntaxTree(){
 SyntaxTree::SyntaxTree(const SyntaxTree& other){
     root = copyTree(other.root);
     isBuilt = other.isBuilt;
-    expr = other.expr;
 }
 
 SyntaxTree& SyntaxTree::operator=(const SyntaxTree& other){
     root = copyTree(other.root);
     isBuilt = other.isBuilt;
-    expr = other.expr;
     return *this;
 }
 
@@ -485,25 +503,6 @@ SyntaxTree::~SyntaxTree(){
 }
 
 //----------------------------------[SyntaxTree Member Functions]-----------------------------------
-
-void SyntaxTree::setExpr(std::string e){
-    expr = e;
-    freeTree(root);
-    tolower(expr);
-    try{
-        exprstack = infix_to_postfix(tokenize(expr));
-    }
-    catch(std::runtime_error& p){
-        throw p;
-    }
-    root = new Node;
-    build(root);
-    prettyprint(root);
-    isBuilt = true;
-    if (!valid(root)){
-        throw std::runtime_error("Malformed syntax.");
-    }
-}
 
 void SyntaxTree::build(Node* n){
     if (exprstack.size() == 0){
@@ -561,17 +560,20 @@ bool SyntaxTree::valid(Node* n){
     return valid(n->left) && valid(n->right);
 }
 
-
+// TODO
 std::string SyntaxTree::str(){
-    return expr;
+    return "";
 }
 
 //------------------------------------[Evaluate the Expression]-------------------------------------
 
 double evaluate(std::string expr){
     double result;
+    tolower(expr);
     try{
-        SyntaxTree s(expr);
+        std::vector<Token> tkstream = tokenize(expr);
+        parse(tkstream);
+        SyntaxTree s(tkstream);
         result = s.evaluate();
     }
     catch(std::runtime_error& e){
