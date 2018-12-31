@@ -17,7 +17,7 @@ double mul_f(double lval, double rval){
 }
 
 double div_f(double lval, double rval){
-    return lval / rval;    
+    return lval / rval;
 }
 
 double mod_f(double lval, double rval){

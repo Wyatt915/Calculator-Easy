@@ -48,8 +48,7 @@ static std::map<std::string, std::function<double(double)> > funcs = {
 
 static std::map<std::string, std::string> constants = {
     { "phi", "1.61803398874989484820" },
-    { "pi",  "3.14159265358979323846" },
-    { "e",   "2.71828182845904523536" }
+    { "pi",  "3.14159265358979323846" }
 };
 
 static std::map<std::string, int> precedence = {
@@ -165,14 +164,25 @@ std::vector<Token> tokenize(std::string s){
         // Numbers
         else if (isdigit(*first) || *first == '.'){
             last = first;
-            do{
-                last++;
-            } while(last != std::end(s) && (isdigit(*last) || *last == '.'));
+            bool keepgoing = true;
+            while(keepgoing){
+                do{
+                    last++;
+                } while(last != std::end(s) && (isdigit(*last) || *last == '.'));
+                if(last == std::end(s)) break;
+                //handle e notation
+                else if(*last == 'e' && !isalpha(*(last+1))){
+                    //if the char after 'e' is not a letter, we want to include it
+                    last++;
+                    keepgoing = true;
+                }
+                else keepgoing = false;
+            }
             prevToken = Token(NUMB_T, std::string(first, last));
             out.push_back(prevToken);
             first = last;
         }
-        
+
         // Evaluate expressions within brackets.
         else if (*first == '['){
             last = first++;
@@ -184,7 +194,7 @@ std::vector<Token> tokenize(std::string s){
                 if(*last == '[') bracecount++;
                 if(*last == ']') bracecount--;
             } while(last != std::end(s) && (*last != ']' || bracecount > 0));
-            
+
             if (*last != ']'){
                 std::cerr << *last << '\n';
                 throw std::runtime_error("Missing ']'.");
@@ -227,7 +237,7 @@ std::vector<Token> tokenize(std::string s){
         }
 
         // Operators
-        else if (!isalnum(*first)){
+        else if (!isalnum(*first) && *first != '!'){
             last = first;
             do{
                 last++;
@@ -243,16 +253,15 @@ std::vector<Token> tokenize(std::string s){
             }
             first = last;
         }
-        
+
         // functions and constants start with a letter and may contain letters
         // and numbers.
-        else if ((isalpha(*first) && !isspace(*first))){
+        else if ((isalpha(*first) && !isspace(*first)) || *first == '!'){
             last = first;
             do{
                 last++;
             }while(last != std::end(s) && isalpha(*last));
             std::string temp(first, last);
-            first = last;
             if (constants.count(temp)){
                 prevToken = Token(NUMB_T, constants[temp]);
                 out.push_back(prevToken);
@@ -264,15 +273,15 @@ std::vector<Token> tokenize(std::string s){
             else if (ops.count(temp)){
                 prevToken = Token(OPER_T, temp);
             }
-
             else{
                 throw std::runtime_error(std::string("Unknown symbol: ") + temp);
             }
+            first = last;
         }
-        
+
         // Catch any other cases
         else{
-            
+
             throw std::runtime_error(std::string("Unknown symbol.") + std::string(first, last));
         }
     }
@@ -285,7 +294,7 @@ void parse(std::vector<Token>& tkstream){
     Token prv;
     while(it != tkstream.end()){
         // Handle implicit multiplication
-        if ((it->type == FUNC_T || it->type == NUMB_T || it->value == "(") &&
+        if ((it->type == FUNC_T || it->type == NUMB_T || it->value == "(") && (it->value != "!") &&
             (prv.type == NUMB_T || prv.value == ")")){
             it = tkstream.insert(it, Token(OPER_T, "*"));
         }
@@ -294,7 +303,7 @@ void parse(std::vector<Token>& tkstream){
         if (it->value == "d" && (prv.type == NULL_T || prv.type == OPER_T)){
             it = tkstream.insert(it, Token(NUMB_T, "1"));
         }
-        prv = *it;    
+        prv = *it;
         it++;
     }
 }
@@ -400,7 +409,7 @@ struct Node{
 };
 
 class SyntaxTree{
-    public:    
+    public:
         SyntaxTree(const std::vector<Token>&);
         SyntaxTree();
         SyntaxTree(const SyntaxTree&);
@@ -545,6 +554,7 @@ bool SyntaxTree::valid(Node* n){
     // If the current node is a number, and either child is not null,
     // then the tree is invalid.
     else if (n->type == NUMB_T){
+        //TODO: Make sure whatever the value of this token is is a valid number.
         if (n->left != nullptr || n->right != nullptr){ return false; }
     }
 
@@ -555,7 +565,7 @@ bool SyntaxTree::valid(Node* n){
     else{
         return false;
     }
-    
+
     // The whole tree is valid iff the left and right subtrees are both valid.
     return valid(n->left) && valid(n->right);
 }
