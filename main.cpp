@@ -8,6 +8,9 @@
 #include <ctime>   //time
 #include <unistd.h>//getpid, getopt
 
+#include <readline/readline.h>
+#include <readline/history.h>
+
 std::vector<double> globalHistory;
 
 //Robert Jenkins' 96 bit Mix Function
@@ -50,7 +53,7 @@ int main(int argc, char** argv){
                 return 1;
         }
     }
-    
+
     // Needed for dice rolling
     unsigned long seed = mix(clock(), time(NULL), getpid());
     srand(seed);
@@ -89,8 +92,7 @@ int main(int argc, char** argv){
         std::string spaces = "                    ";
         std::string expr;
         while(true){
-            std::cout << ">>> ";
-            std::getline(std::cin, expr);
+            expr = readline(">>> ");
             if(expr == "q") break;
             try{
                 res = evaluate(expr);
@@ -104,7 +106,7 @@ int main(int argc, char** argv){
             catch(...){
                 std::cerr << "An unknown error occured.\n";
             }
-        } 
+        }
     }
     return 0;
 }
