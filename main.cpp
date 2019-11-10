@@ -30,6 +30,10 @@ unsigned long mix(unsigned long a, unsigned long b, unsigned long c)
 }
 
 int main(int argc, char** argv){
+    // Needed for dice rolling
+    unsigned long seed = mix(clock(), time(NULL), getpid());
+    srand(seed);
+
     int c;
     bool fmode = false;
     bool imode = false;
@@ -53,10 +57,6 @@ int main(int argc, char** argv){
                 return 1;
         }
     }
-
-    // Needed for dice rolling
-    unsigned long seed = mix(clock(), time(NULL), getpid());
-    srand(seed);
 
     if (!(imode || fmode)) {
         std::string s;
@@ -89,7 +89,6 @@ int main(int argc, char** argv){
     else if(imode){
         unsigned int counter = 0;
         double res;
-        std::string spaces = "                    ";
         std::string expr;
         while(true){
             expr = readline(">>> ");
@@ -97,7 +96,7 @@ int main(int argc, char** argv){
             try{
                 res = evaluate(expr);
                 globalHistory.push_back(res);
-                std::cout << spaces <<  "[" << counter << "]\r" <<  std::setprecision(15) << res << "\n\n";
+                std::cout << "[" << counter << "]\t" <<  std::setprecision(15) << res << "\n";
                 counter++;
                 add_history(expr.c_str());
             }

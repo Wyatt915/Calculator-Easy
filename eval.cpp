@@ -161,6 +161,7 @@ std::vector<Token> tokenize(std::string s){
         // Ignore spaces
         if (isspace(*first)){
             first++;
+            continue;
         }
 
         // Numbers
@@ -239,7 +240,7 @@ std::vector<Token> tokenize(std::string s){
         }
 
         // Operators
-        else if (!isalnum(*first) && *first != '!'){
+        else if (*first == 'd' || (!isalnum(*first) && *first != '!')){
             last = first;
             do{
                 last++;
