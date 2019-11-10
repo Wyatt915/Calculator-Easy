@@ -51,7 +51,7 @@ static std::map<std::string, std::string> constants = {
     { "pi",  "3.14159265358979323846" }
 };
 
-static std::map<std::string, int> precedence = {
+static std::map<std::string, int> prec = {
     { "+", 0 },
     { "-", 0 },
     { "*", 1 },
@@ -60,6 +60,10 @@ static std::map<std::string, int> precedence = {
     { "d", 2 },
     { "^", 2 }
 };
+
+inline int precedence(const Token &t){
+    return prec[t.value];
+}
 
 //------------------------------------------------[]------------------------------------------------
 //----------------------------------------[Parsing routines]----------------------------------------
@@ -140,11 +144,9 @@ Token TokenStack::pop(){
 }
 
 std::ostream& operator<<(std::ostream& os, const TokenStack& t){
-    os << "-----------------\n";
     for(size_t i = 0; i < t.numTokens; i++){
-        os << i << '\t' <<  t.data[i].value << "\n";
+        os << t.data[i].value << " ";
     }
-    os << "-----------------\n";
     return os;
 }
 
@@ -231,7 +233,7 @@ std::vector<Token> tokenize(std::string s){
 
         // parenthesis
         else if (*first == '(' || *first == ')'){
-            prevToken = Token(OPER_T, std::string(first, first+1));
+            prevToken = Token(BRAC_T, std::string(first, first+1));
             out.push_back(prevToken);
             first = ++last;
         }
@@ -328,49 +330,42 @@ TokenStack infix_to_postfix(std::vector<Token> list){
                 opstack.push(t);
                 i++;
             }
+
+            // Case 3: the incoming token is an operator
+            else if (t.type == OPER_T){
+                bool shouldPopOp;
+                while (!opstack.is_empty()){
+                    shouldPopOp =
+                        (opstack.peek().type == FUNC_T ||
+                            precedence(opstack.peek())  >  precedence(t) ||
+                            (precedence(opstack.peek()) == precedence(t) &&
+                                opstack.peek().value != "^"     //Right-associativity behaves differently
+                            )
+                        ) &&
+                        (opstack.peek().value != "(");
+                    if (shouldPopOp) {
+                        postfix.push(opstack.pop());
+                    }
+                    else break;
+                }
+                opstack.push(t);
+                i++;
+            }
+
             // Case 3: If the incoming symbol is a right parenthesis, pop the operator
             // stack and push the operators onto the output until you see a left parenthesis.
             else if (t.value == ")"){
-                // If there is a left parenthesis on the stack, the two will annihilate.
-                if (opstack.peek().value == "("){
-                    opstack.pop();
+                while(opstack.peek().value != "(" && opstack.size() > 0){
+                    postfix.push(opstack.pop());
                 }
-                else{
-                    while(opstack.peek().value != "(" && opstack.size() > 0){
-                        postfix.push(opstack.pop());
-                    }
-                    opstack.pop();// discard parentheses
-                }
+                opstack.pop();// discard parentheses
                 // If there is a function on the stack, push it now.
                 if (opstack.peek().type == FUNC_T){
                     postfix.push(opstack.pop());
                 }
                 i++;
             }
-            // Case 4: If the operator stack is empty or contains a left parenthesis on
-            // top, push the incoming operator onto the operator stack.
-            else if (opstack.is_empty() || opstack.peek().value == "("){
-                opstack.push(t);
-                i++;
-            }
-            // Case 5: If the incoming symbol has higher precedence than the
-            // top of the stack, push it on the stack.
-            else if (precedence[t.value] > precedence[opstack.peek().value]){
-                opstack.push(t);
-                i++;
-            }
-            // Case 6: If the incoming symbol has equal precedence with the
-            // top of the stack, pop opstack and push it to postfix and then
-            // push the incoming operator.
-            else if (precedence[t.value] == precedence[opstack.peek().value]){
-                postfix.push(opstack.pop());
-                opstack.push(t);
-                i++;
-            }
-            // Case 7: If the incoming symbol has lower precedence than the
-            // symbol on the top of the stack, pop the stack and push it to
-            // postfix. Then test the incoming operator against the new
-            // top of stack.
+
             else{
                 postfix.push(opstack.pop());
                 // Don't increment
@@ -392,7 +387,6 @@ TokenStack infix_to_postfix(std::vector<Token> list){
     catch(...){
         throw std::runtime_error("Invalid expression. Please try again.");
     }
-    // std::cout << postfix;
     return postfix;
 }
 

@@ -7,7 +7,7 @@ EXEC = ce
 SOURCES = $(wildcard *.cpp)
 OBJECTS = $(SOURCES:.cpp=.o)
 
-all: CXXFLAGS += -O2
+all: CXXFLAGS += -Os
 all: $(EXEC)
 
 debug: CXXFLAGS += -g

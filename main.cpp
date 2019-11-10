@@ -99,6 +99,7 @@ int main(int argc, char** argv){
                 globalHistory.push_back(res);
                 std::cout << spaces <<  "[" << counter << "]\r" <<  std::setprecision(15) << res << "\n\n";
                 counter++;
+                add_history(expr.c_str());
             }
             catch(std::runtime_error& e){
                 std::cerr << e.what() << std::endl;
