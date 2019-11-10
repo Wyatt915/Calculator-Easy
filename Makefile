@@ -1,7 +1,7 @@
 CC=gcc
 CXX=g++
 CXXFLAGS=-c -std=c++14 -Wall
-LNFLAGS=-lreadline
+LNFLAGS=-lreadline -lcurses
 
 EXEC = ce
 SOURCES = $(wildcard *.cpp)

@@ -1,15 +1,21 @@
 #include "eval.hpp"
 
-#include <iostream>
-#include <iomanip>
-#include <string>
-#include <stdexcept>
 #include <cstdlib> //rand
 #include <ctime>   //time
+#include <curses.h>
+#include <iomanip>
+#include <iostream>
+#include <stdexcept>
+#include <string>
+#include <sstream>
 #include <unistd.h>//getpid, getopt
 
 #include <readline/readline.h>
 #include <readline/history.h>
+
+#define TXTRED      "\x1b[31;1m"
+#define TXTBLD      "\x1b[1m"
+#define TXTDEF      "\x1b[0m"
 
 std::vector<double> globalHistory;
 
@@ -107,6 +113,79 @@ int main(int argc, char** argv){
                 std::cerr << "An unknown error occured.\n";
             }
         }
+    }
+    else if (fmode){
+        int c;
+        std::string prev = "0";
+        std::string cur = "0";
+        std::string expr = "0";
+        int count = 0;
+        int y = 0; int x = 0;
+        int decimal = -1;
+        cbreak();
+        noecho();
+        timeout(-1);
+        initscr();
+        keypad(stdscr, TRUE);
+        std::stringstream ss;
+        const int left = 5;
+        const int digits = 12 + left;
+        move(0, left);
+        start_color();
+        init_pair(1, COLOR_RED, COLOR_BLACK);
+        while ((c = getchar()) != 'q'){
+            switch (c){
+                case '-':
+                    getyx(stdscr, y, x);
+                    move(y, 0);
+                    chgat(20, A_NORMAL, COLOR_RED, NULL);
+                    attron(COLOR_PAIR(1));
+                    move(y, x);
+                case '+':
+                    move(y, left);
+                    clrtoeol();
+                    if(decimal >=0){
+                        mvaddstr(y, digits-decimal, cur.c_str());
+                    }
+                    else {
+                        mvaddstr(y, digits-cur.length(), cur.c_str());
+                    }
+
+                    addch(c);
+                    expr += c; expr += cur;
+                    prev = cur;
+                    cur = "";
+                    move(y, 0);
+                    ss << '[' << ++count << ']';
+                    addstr(ss.str().c_str());
+                    ss.str(std::string());
+                    move(++y, left);
+                    attrset(0);
+                    decimal = -1;
+                    break;
+                case KEY_ENTER:
+                case 10:
+                case 13:
+                    mvaddstr(y, 0, "---------------");
+                    ss << evaluate(expr) << std::endl;
+                    decimal = ss.str().find('.');
+                    attron(A_STANDOUT);
+                    mvaddch(++y, 0, '*');
+                    mvaddstr(y, digits-decimal, ss.str().c_str());
+                    attroff(A_STANDOUT);
+                    ss.str(std::string());
+                    move(++y, left);
+                    break;
+                case '.':
+                    decimal = cur.length();
+                default:
+                    addch(c);
+                    cur += c;
+                    break;
+            }
+            refresh();
+        }
+        endwin();
     }
     return 0;
 }
