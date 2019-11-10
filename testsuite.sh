@@ -3,7 +3,7 @@
 testcases='exp(1)+pi+phi
 (2*3)/(3-5)
 ((((5)))(3))
-exp(pi)-pi
+(e^pi)-pi
 ((2*phi)-1)^2
 +
 1.0e2-1

@@ -47,6 +47,7 @@ static std::map<std::string, std::function<double(double)> > funcs = {
 };
 
 static std::map<std::string, std::string> constants = {
+    { "e",   "2.71828182845904523536" },
     { "phi", "1.61803398874989484820" },
     { "pi",  "3.14159265358979323846" }
 };
@@ -152,7 +153,7 @@ std::ostream& operator<<(std::ostream& os, const TokenStack& t){
 
 //------------------------------------------[Tokenization]------------------------------------------
 
-std::vector<Token> tokenize(std::string s){
+std::vector<Token> tokenize(const std::string& s){
     auto first = std::begin(s);
     auto last = std::begin(s);
     std::vector<Token> out;
@@ -167,20 +168,10 @@ std::vector<Token> tokenize(std::string s){
         // Numbers
         else if (isdigit(*first) || *first == '.'){
             last = first;
-            bool keepgoing = true;
-            while(keepgoing){
-                do{
-                    last++;
-                } while(last != std::end(s) && (isdigit(*last) || *last == '.'));
-                if(last == std::end(s)) break;
-                //handle e notation
-                else if(*last == 'e' && !isalpha(*(last+1))){
-                    //if the char after 'e' is not a letter, we want to include it
-                    last++;
-                    keepgoing = true;
-                }
-                else keepgoing = false;
-            }
+            std::string temp(first, std::end(s));
+            size_t idx;
+            std::stod(temp, &idx); //Handles all weird formats including e-notation and hex.
+            std::advance(last, idx);
             prevToken = Token(NUMB_T, std::string(first, last));
             out.push_back(prevToken);
             first = last;

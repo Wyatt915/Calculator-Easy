@@ -39,6 +39,6 @@ class TokenStack{
 };
 
 
-std::vector<Token> tokenize(std::string);
+std::vector<Token> tokenize(const std::string&);
 TokenStack infix_to_postfix(std::vector<Token> list);
 double evaluate(std::string);
