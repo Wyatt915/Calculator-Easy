@@ -506,7 +506,6 @@ SyntaxTree::~SyntaxTree(){
 
 void SyntaxTree::build(Node* n){
     if (exprstack.size() == 0){
-        delete n;
         n = nullptr;
         return;
     }
@@ -515,11 +514,11 @@ void SyntaxTree::build(Node* n){
     n->value = t.value;
     if (t.type == OPER_T){
         n->numchildren = 2;
-            // Build the righthand side of the tree first!!
-            n->right = new Node;
-            n->left = new Node;
-            build(n->right);
-            build(n->left);
+        // Build the righthand side of the tree first!!
+        n->right = new Node;
+        n->left = new Node;
+        build(n->right);
+        build(n->left);
     }
     if (t.type == NUMB_T){
         n->numchildren = 0;

@@ -10,7 +10,7 @@ OBJECTS = $(SOURCES:.cpp=.o)
 all: CXXFLAGS += -O2
 all: $(EXEC)
 
-debug: CXXFLAGS += -g -DDEBUG
+debug: CXXFLAGS += -g -DDEBUG -DDRAWGRAPH
 debug: $(EXEC)
 
 # Main target
