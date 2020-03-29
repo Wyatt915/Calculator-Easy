@@ -59,8 +59,7 @@ int main(int argc, char** argv){
                 break;
             case '?':
             default:
-                std::cerr << "Unknown option: " << char(c) << '\n';
-                return 1;
+                break;
         }
     }
 

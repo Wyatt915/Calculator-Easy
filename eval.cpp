@@ -225,9 +225,9 @@ std::vector<Token> tokenize(const std::string& s){
 
         // parenthesis
         else if (*first == '(' || *first == ')'){
-            prevToken = Token(BRAC_T, std::string(first, first+1));
+            prevToken = Token(BRAC_T, std::string(first, first + 1));
             out.push_back(prevToken);
-            first = ++last;
+            first++;
         }
 
         // Operators
@@ -279,6 +279,11 @@ std::vector<Token> tokenize(const std::string& s){
             throw std::runtime_error(std::string("Unknown symbol.") + std::string(first, last));
         }
     }
+#ifdef DEBUG
+    for (auto x : out){
+        std::cerr << x.value << std::endl;
+    }
+#endif
     return out;
 }
 
